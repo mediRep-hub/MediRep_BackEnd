@@ -19,7 +19,7 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS
+// ✅ Allow frontend origins
 const allowedOrigins = [
   "http://localhost:5173",
   "https://medi-rep-front-end-x2l4.vercel.app",
@@ -28,9 +28,9 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // server-to-server calls
+      if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error("Not allowed by CORS"));
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -39,7 +39,7 @@ app.use(
 
 app.options("*", cors());
 
-// Default route
+// ✅ Default route for health check
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     message: "✅ GCC Backend (Serverless) is running on Vercel!",
@@ -47,8 +47,9 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// MongoDB caching for serverless
+// ✅ MongoDB connection management for serverless
 let isConnected = false;
+
 async function ensureDBConnection() {
   if (isConnected) return;
   try {
@@ -61,7 +62,7 @@ async function ensureDBConnection() {
   }
 }
 
-// Run DB connection before every request
+// ✅ Ensure DB connection before every request
 app.use(async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     await ensureDBConnection();
@@ -71,11 +72,7 @@ app.use(async (_req: Request, _res: Response, next: NextFunction) => {
   }
 });
 
-// Async handler wrapper
-export const asyncHandler = (fn: any) => (req: any, res: any, next: any) =>
-  Promise.resolve(fn(req, res, next)).catch(next);
-
-// Mount routes
+// ✅ Mount routes
 app.use("/admin", adminRouter);
 app.use("/doctor", doctorRouter);
 app.use("/product", productRoutes);
@@ -84,7 +81,7 @@ app.use("/manageMr", MRRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 
-// Error handler
+// ✅ Global error handler
 app.use(ErrorHandler);
 
 export default app;
