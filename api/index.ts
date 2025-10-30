@@ -1,19 +1,20 @@
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import dbConnect from "../src/database";
-import adminRouter from "../src/routes/admin";
-import doctorRouter from "../src/routes/doctorRoute";
-import productRoutes from "../src/routes/productRoute";
-import callReportingRoutes from "../src/routes/callReportingRoute";
-import MRRoutes from "../src/routes/MRRoute";
-import requisitionRoutes from "../src/routes/requisitionRoute";
-import uploadFileRoutes from "../src/routes/uploadRoute";
-import ErrorHandler from "../src/middlewares/errorHandler";
+import adminRouter from "../src/routes/admin.js";
+import doctorRouter from "../src/routes/doctorRoute.js";
+import productRoutes from "../src/routes/productRoute.js";
+import callReportingRoutes from "../src/routes/callReportingRoute.js";
+import MRRoutes from "../src/routes/MRRoute.js";
+import requisitionRoutes from "../src/routes/requisitionRoute.js";
+import uploadFileRoutes from "../src/routes/uploadRoute.js";
+import ErrorHandler from "../src/middlewares/errorHandler.js";
 
 dotenv.config();
 
 const app = express();
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,51 +33,42 @@ app.use(
   })
 );
 
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  console.log(`📨 ${req.method} ${req.originalUrl}`);
-  next();
+// ✅ Default route for testing
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    message: "✅ GCC Backend (Serverless) running on Vercel!",
+    timestamp: new Date().toISOString(),
+  });
 });
 
-// ✅ Lazy DB connection (runs only once)
+// ✅ Database connection (run once)
 let isConnected = false;
 async function ensureDBConnection() {
   if (!isConnected) {
     try {
-      await dbConnect({ retries: 5, delay: 5000 });
-      console.log("✅ MongoDB Connected (Vercel Function)!");
+      await dbConnect();
+      console.log("✅ MongoDB Connected");
       isConnected = true;
     } catch (err) {
       console.error("❌ MongoDB connection failed:", err);
     }
   }
 }
-
-// ✅ Ensure DB connection before handling routes
 app.use(async (_req, _res, next) => {
   await ensureDBConnection();
   next();
 });
 
-// ✅ Root route
-app.get("/", (_req: Request, res: Response) => {
-  res.status(200).json({
-    message: "✅ GCC Backend (Serverless) is working!",
-    status: "success",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// ✅ Mount all routes
-// app.use(adminRouter);
-// app.use(doctorRouter);
-// app.use(productRoutes);
-// app.use(callReportingRoutes);
-// app.use(MRRoutes);
+// ✅ Mount routes
+// app.use("/api/admin", adminRouter);
+// app.use("/api/doctor", doctorRouter);
+// app.use("/api/product", productRoutes);
+// app.use("/api/callreport", callReportingRoutes);
+// app.use("/api/mr", MRRoutes);
 app.use("/api/requisition", requisitionRoutes);
-// app.use(uploadFileRoutes);
+// app.use("/api/upload", uploadFileRoutes);
 
-// ✅ Error handler
 app.use(ErrorHandler);
 
-// 🚀 Export for Vercel (no app.listen)
+// ✅ Export default (for Vercel)
 export default app;
