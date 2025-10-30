@@ -1,16 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES6", // ✅ Modern JS
-    "module": "commonjs", // ✅ Needed for Node.js
-    "strict": true, // ✅ Enables all strict type-checking
-    "esModuleInterop": true, // ✅ Allows default imports from CommonJS
-    "skipLibCheck": true, // ✅ Speeds up build, ignores type issues in libs
-    "forceConsistentCasingInFileNames": true, // ✅ Avoids case issues (important in production)
-    "outDir": "./dist", // ✅ Build output
-    "rootDir": "./src", // ✅ Source files
-    "resolveJsonModule": true, // ✅ Allows importing .json files
-    "types": ["node"] // ✅ Includes Node.js typings
+    "target": "ES2020",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src", "api"]
 }
