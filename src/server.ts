@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://medi-rep-front-end-x2l4.vercel.app",
+  "https://medi-rep-front-end.vercel.app/",
 ];
 
 app.use(
