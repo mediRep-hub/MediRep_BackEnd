@@ -67,13 +67,13 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 // ✅ Mount all routes
-app.use(adminRouter);
-app.use(doctorRouter);
-app.use(productRoutes);
-app.use(callReportingRoutes);
-app.use(MRRoutes);
-app.use(requisitionRoutes);
-app.use(uploadFileRoutes);
+// app.use(adminRouter);
+// app.use(doctorRouter);
+// app.use(productRoutes);
+// app.use(callReportingRoutes);
+// app.use(MRRoutes);
+app.use("/api/requisition", requisitionRoutes);
+// app.use(uploadFileRoutes);
 
 // ✅ Error handler
 app.use(ErrorHandler);
