@@ -1,9 +1,9 @@
+// src/database.ts
 import mongoose from "mongoose";
 
-// ✅ Global connection cache — Vercel reuses this between function invocations
 let cached = (global as any).mongoose || { conn: null, promise: null };
 
-const dbConnect = async (): Promise<void> => {
+const dbConnect = async () => {
   if (cached.conn) {
     console.log("⚡ Using existing MongoDB connection");
     return;
@@ -12,13 +12,12 @@ const dbConnect = async (): Promise<void> => {
   const uri = process.env.MONGODB_CONNECTION_STRING;
   if (!uri) {
     throw new Error(
-      "❌ MONGODB_CONNECTION_STRING is not defined in environment variables"
+      "❌ MONGODB_CONNECTION_STRING not set in environment variables"
     );
   }
 
   if (!cached.promise) {
     mongoose.set("strictQuery", false);
-
     cached.promise = mongoose
       .connect(uri, {
         dbName: "medi-rep",
@@ -27,10 +26,7 @@ const dbConnect = async (): Promise<void> => {
         socketTimeoutMS: 45000,
       })
       .then((mongooseInstance) => {
-        console.log(
-          "✅ MongoDB connected successfully:",
-          mongooseInstance.connection.host
-        );
+        console.log("✅ MongoDB connected:", mongooseInstance.connection.host);
         return mongooseInstance;
       })
       .catch((err) => {

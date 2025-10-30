@@ -1,7 +1,9 @@
+// src/server.ts
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import dbConnect from "./database";
+
 import adminRouter from "./routes/admin.js";
 import doctorRouter from "./routes/doctorRoute.js";
 import productRoutes from "./routes/productRoute.js";
@@ -15,11 +17,10 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Allow frontend origins
+// ✅ CORS setup
 const allowedOrigins = [
   "http://localhost:5173",
   "https://medi-rep-front-end-x2l4.vercel.app",
@@ -39,37 +40,27 @@ app.use(
 
 app.options("*", cors());
 
-// ✅ Default route for health check
-app.get("/", (_req: Request, res: Response) => {
-  res.status(200).json({
-    message: "✅ GCC Backend (Serverless) is running on Vercel!",
-    time: new Date().toISOString(),
-  });
-});
-
-// ✅ MongoDB connection management for serverless
-let isConnected = false;
-
-async function ensureDBConnection() {
-  if (isConnected) return;
-  try {
-    await dbConnect();
-    console.log("✅ MongoDB connected");
-    isConnected = true;
-  } catch (err) {
-    console.error("❌ MongoDB connection failed:", err);
-    throw err;
-  }
-}
-
-// ✅ Ensure DB connection before every request
+// ✅ MongoDB connection caching
+let dbConnected = false;
 app.use(async (_req: Request, _res: Response, next: NextFunction) => {
   try {
-    await ensureDBConnection();
+    if (!dbConnected) {
+      await dbConnect();
+      dbConnected = true;
+    }
     next();
   } catch (err) {
+    console.error("❌ Database connection error:", err);
     next(err);
   }
+});
+
+// ✅ Test route
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({
+    message: "✅ GCC Backend (Serverless) running on Vercel!",
+    time: new Date().toISOString(),
+  });
 });
 
 // ✅ Mount routes
@@ -81,7 +72,7 @@ app.use("/manageMr", MRRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 
-// ✅ Global error handler
+// ✅ Error middleware
 app.use(ErrorHandler);
 
 export default app;
