@@ -9,10 +9,10 @@ import {
 
 const router = express.Router();
 
-router.post("/api/callRepoeting/addReport", addCallReport);
-router.get("/api/callRepoeting/getAllReports", getAllCallReports);
-router.get("/api/callRepoeting/getSingleReport:id", getCallReportById);
-router.put("/api/callRepoeting/updateReport/:id", updateCallReport);
-router.delete("/api/callRepoeting/deleteReport/:id", deleteCallReport);
+router.post("/addReport", addCallReport);
+router.get("/getAllReports", getAllCallReports);
+router.get("/getSingleReport:id", getCallReportById);
+router.put("/updateReport/:id", updateCallReport);
+router.delete("/deleteReport/:id", deleteCallReport);
 
 export default router;
