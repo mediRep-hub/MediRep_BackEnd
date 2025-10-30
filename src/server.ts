@@ -10,7 +10,6 @@ import MRRoutes from "./routes/MRRoute.js";
 import requisitionRoutes from "./routes/requisitionRoute.js";
 import uploadFileRoutes from "./routes/uploadRoute.js";
 import ErrorHandler from "./middlewares/errorHandler.js";
-
 dotenv.config();
 
 const app = express();
@@ -26,19 +25,16 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like Postman or server-to-server)
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+      if (allowedOrigins.includes(origin)) callback(null, true);
+      else callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
   })
 );
+
+app.options("*", cors());
 
 // ✅ Default route
 app.get("/", (req, res) => {
