@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://gulbergcitycentre.com",
+  "https://medi-rep-front-end-x2l4.vercel.app/",
 ];
 
 app.use(
@@ -33,24 +33,24 @@ app.use(
   })
 );
 
-// ✅ Default route for testing
-app.get("/", (_req, res) => {
+// ✅ Default route (for testing)
+app.get("/", (req, res) => {
   res.status(200).json({
-    message: "✅ GCC Backend (Serverless) running on Vercel!",
-    timestamp: new Date().toISOString(),
+    message: "✅ GCC Backend (Serverless) is running on Vercel!",
+    time: new Date().toISOString(),
   });
 });
 
-// ✅ Database connection (run once)
+// ✅ Connect to MongoDB once
 let isConnected = false;
 async function ensureDBConnection() {
   if (!isConnected) {
     try {
       await dbConnect();
-      console.log("✅ MongoDB Connected");
+      console.log("✅ MongoDB connected");
       isConnected = true;
     } catch (err) {
-      console.error("❌ MongoDB connection failed:", err);
+      console.error("❌ DB connection failed:", err);
     }
   }
 }
@@ -60,15 +60,14 @@ app.use(async (_req, _res, next) => {
 });
 
 // ✅ Mount routes
-// app.use("/api/admin", adminRouter);
-// app.use("/api/doctor", doctorRouter);
-// app.use("/api/product", productRoutes);
-// app.use("/api/callreport", callReportingRoutes);
-// app.use("/api/mr", MRRoutes);
+app.use("/api/admin", adminRouter);
+app.use("/api/doctor", doctorRouter);
+app.use("/api/product", productRoutes);
+app.use("/api/callreport", callReportingRoutes);
+app.use("/api/mr", MRRoutes);
 app.use("/api/requisition", requisitionRoutes);
-// app.use("/api/upload", uploadFileRoutes);
+app.use("/api/upload", uploadFileRoutes);
 
 app.use(ErrorHandler);
 
-// ✅ Export default (for Vercel)
 export default app;
