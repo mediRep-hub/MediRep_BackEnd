@@ -37,6 +37,27 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
+// ✅ Lazy DB connection (runs only once)
+let isConnected = false;
+async function ensureDBConnection() {
+  if (!isConnected) {
+    try {
+      await dbConnect({ retries: 5, delay: 5000 });
+      console.log("✅ MongoDB Connected (Vercel Function)!");
+      isConnected = true;
+    } catch (err) {
+      console.error("❌ MongoDB connection failed:", err);
+    }
+  }
+}
+
+// ✅ Ensure DB connection before handling routes
+app.use(async (_req, _res, next) => {
+  await ensureDBConnection();
+  next();
+});
+
+// ✅ Root route
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     message: "✅ GCC Backend (Serverless) is working!",
@@ -54,27 +75,8 @@ app.use(MRRoutes);
 app.use(requisitionRoutes);
 app.use(uploadFileRoutes);
 
+// ✅ Error handler
 app.use(ErrorHandler);
 
-// ✅ Lazy DB connection (runs only once)
-let isConnected = false;
-async function ensureDBConnection() {
-  if (!isConnected) {
-    try {
-      await dbConnect({ retries: 5, delay: 5000 });
-      console.log("✅ MongoDB Connected (Vercel Function)!");
-      isConnected = true;
-    } catch (err) {
-      console.error("❌ MongoDB connection failed:", err);
-    }
-  }
-}
-
-// Connect before handling requests
-app.use(async (_req, _res, next) => {
-  await ensureDBConnection();
-  next();
-});
-
-// 🚀 Export as default (no need for app.listen)
+// 🚀 Export for Vercel (no app.listen)
 export default app;
