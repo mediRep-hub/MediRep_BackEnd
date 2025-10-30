@@ -1,9 +1,7 @@
-// src/server.ts
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import dbConnect from "./database";
-
 import adminRouter from "./routes/admin.js";
 import doctorRouter from "./routes/doctorRoute.js";
 import productRoutes from "./routes/productRoute.js";
@@ -20,7 +18,6 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ CORS setup
 const allowedOrigins = [
   "http://localhost:5173",
   "https://medi-rep-front-end-x2l4.vercel.app",
@@ -29,50 +26,49 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
+      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+      else callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
 
-app.options("*", cors());
-
-// ✅ MongoDB connection caching
-let dbConnected = false;
-app.use(async (_req: Request, _res: Response, next: NextFunction) => {
-  try {
-    if (!dbConnected) {
-      await dbConnect();
-      dbConnected = true;
-    }
-    next();
-  } catch (err) {
-    console.error("❌ Database connection error:", err);
-    next(err);
-  }
-});
-
-// ✅ Test route
-app.get("/", (_req: Request, res: Response) => {
+// ✅ Default route
+app.get("/", (req, res) => {
   res.status(200).json({
-    message: "✅ GCC Backend (Serverless) running on Vercel!",
+    message: "✅ Backend running successfully on Vercel!",
     time: new Date().toISOString(),
   });
 });
 
-// ✅ Mount routes
-app.use("/admin", adminRouter);
-app.use("/doctor", doctorRouter);
-app.use("/product", productRoutes);
-app.use("/callreport", callReportingRoutes);
-app.use("/manageMr", MRRoutes);
-app.use("/requisition", requisitionRoutes);
-app.use("/upload", uploadFileRoutes);
+// ✅ MongoDB connect once
+let isConnected = false;
+async function ensureDBConnection() {
+  if (!isConnected) {
+    try {
+      await dbConnect();
+      console.log("✅ MongoDB connected");
+      isConnected = true;
+    } catch (err) {
+      console.error("❌ DB connection failed:", err);
+    }
+  }
+}
 
-// ✅ Error middleware
+app.use(async (_req, _res, next) => {
+  await ensureDBConnection();
+  next();
+});
+
+// ✅ Mount routes
+app.use("/api/admin", adminRouter);
+app.use("/api/doctor", doctorRouter);
+app.use("/api/product", productRoutes);
+app.use("/api/callreport", callReportingRoutes);
+app.use("/api/mr", MRRoutes);
+app.use("/api/requisition", requisitionRoutes);
+app.use("/api/upload", uploadFileRoutes);
+
 app.use(ErrorHandler);
 
 export default app;
