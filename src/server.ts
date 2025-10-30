@@ -61,13 +61,13 @@ app.use(async (_req, _res, next) => {
 });
 
 // ✅ Mount routes
-app.use("/api/admin", adminRouter);
-app.use("/api/doctor", doctorRouter);
-app.use("/api/product", productRoutes);
-app.use("/api/callreport", callReportingRoutes);
-app.use("/api/mr", MRRoutes);
-app.use("/api/requisition", requisitionRoutes);
-app.use("/api/upload", uploadFileRoutes);
+app.use("/admin", adminRouter);
+app.use("/doctor", doctorRouter);
+app.use("/product", productRoutes);
+app.use("/callreport", callReportingRoutes);
+app.use("/manageMr", MRRoutes);
+app.use("/requisition", requisitionRoutes);
+app.use("/upload", uploadFileRoutes);
 
 app.use(ErrorHandler);
 
