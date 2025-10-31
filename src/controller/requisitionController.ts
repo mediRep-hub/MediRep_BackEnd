@@ -101,6 +101,7 @@ export const updateRequisition = async (req: Request, res: Response) => {
       "quantity",
       "paymentType",
       "amount",
+      "remarks",
     ];
     const updates: any = {};
     allowedFields.forEach((field) => {
