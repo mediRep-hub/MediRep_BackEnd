@@ -13,6 +13,6 @@ router.post("/addProduct", addProduct);
 router.get("/getAllProducts", getAllProducts);
 router.put("/updateProduct/:id", updateProduct);
 router.delete("/deleteProduct/:id", deleteProduct);
-router.delete("/uploadCSVUpdateTarget", uploadCSVUpdateTarget);
+router.post("/uploadCSVUpdateTarget", uploadCSVUpdateTarget);
 
 export default router;
