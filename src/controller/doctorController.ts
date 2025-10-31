@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import Doctor from "../models/doctorModel";
 import csv from "csv-parser";
+import { Readable } from "stream";
+
 const generateDocId = async (): Promise<string> => {
   let unique = false;
   let docId = "";
@@ -118,8 +120,7 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
     const results: any[] = [];
-    const stream = req.file.buffer;
-    const readable = require("stream").Readable.from(stream.toString());
+    const readable = Readable.from(req.file.buffer);
 
     readable
       .pipe(csv())
@@ -142,33 +143,30 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
             image,
           } = row;
 
-          // Skip row if required fields are missing
           if (!name || !email || !specialty) continue;
 
           const docId = await generateDocId();
 
           doctorsToAdd.push({
             docId,
-            name,
-            specialty,
-            email,
-            phone: phone || "",
-            address: address || "",
-            startTime: startTime || "",
-            endTime: endTime || "",
-            region: region || "",
-            area: area || "",
-            affiliation: affiliation || "",
-            image: image || "",
+            name: name.trim(),
+            specialty: specialty.trim(),
+            email: email.trim(),
+            phone: phone?.trim() || "",
+            address: address?.trim() || "",
+            startTime: startTime?.trim() || "",
+            endTime: endTime?.trim() || "",
+            region: region?.trim() || "",
+            area: area?.trim() || "",
+            affiliation: affiliation?.trim() || "",
+            image: image?.trim() || "",
           });
         }
 
-        if (doctorsToAdd.length === 0) {
-          return res.status(400).json({
-            success: false,
-            message: "No valid doctor data found in CSV",
-          });
-        }
+        if (doctorsToAdd.length === 0)
+          return res
+            .status(400)
+            .json({ message: "No valid doctor data found in CSV" });
 
         const createdDoctors = await Doctor.insertMany(doctorsToAdd);
 
@@ -180,9 +178,6 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
       });
   } catch (error: any) {
     console.error(error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to upload CSV",
-    });
+    res.status(500).json({ message: error.message || "Failed to upload CSV" });
   }
 };
