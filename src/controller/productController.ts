@@ -57,29 +57,23 @@ export const deleteProduct = async (req: Request, res: Response) => {
 };
 export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const results: any[] = req.body;
 
-    const results: any[] = [];
+    if (!results || !Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({ message: "No data found in request" });
+    }
 
-    const stream = req.file.buffer;
-    const readable = require("stream").Readable.from(stream.toString());
-    readable
-      .pipe(csv())
-      .on("data", (data) => results.push(data))
-      .on("end", async () => {
-        // Loop through CSV and update targets
-        for (const row of results) {
-          const { SKU, Target } = row;
-          await Product.updateOne(
-            { sku: SKU }, // match by SKU
-            { $set: { target: Number(Target) } } // update target
-          );
-        }
+    for (const row of results) {
+      const { SKU, target } = row;
+      await Product.updateOne(
+        { sku: SKU },
+        { $set: { target: Number(target) } }
+      );
+    }
 
-        res
-          .status(200)
-          .json({ success: true, message: "Targets updated successfully" });
-      });
+    res
+      .status(200)
+      .json({ success: true, message: "Targets updated successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "CSV update failed" });
