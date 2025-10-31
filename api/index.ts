@@ -2,26 +2,26 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import dbConnect from "../src/database";
-import adminRouter from "../src/routes/admin.js";
-import doctorRouter from "../src/routes/doctorRoute.js";
-import productRoutes from "../src/routes/productRoute.js";
-import callReportingRoutes from "../src/routes/callReportingRoute.js";
-import MRRoutes from "../src/routes/MRRoute.js";
-import requisitionRoutes from "../src/routes/requisitionRoute.js";
-import uploadFileRoutes from "../src/routes/uploadRoute.js";
-import ErrorHandler from "../src/middlewares/errorHandler.js";
+import adminRouter from "../src/routes/admin";
+import doctorRouter from "../src/routes/doctorRoute";
+import productRoutes from "../src/routes/productRoute";
+import callReportingRoutes from "../src/routes/callReportingRoute";
+import MRRoutes from "../src/routes/MRRoute";
+import requisitionRoutes from "../src/routes/requisitionRoute";
+import uploadFileRoutes from "../src/routes/uploadRoute";
+import ErrorHandler from "../src/middlewares/errorHandler";
+import { PORT } from "../src/config";
 
 dotenv.config();
 
 const app = express();
 
-// ✅ Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://medi-rep-front-end.vercel.app", // ✅ no trailing slash
+  "https://medi-rep-front-end.vercel.app",
 ];
 
 app.use(
@@ -41,6 +41,8 @@ app.get("/", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // ✅ Database connect (lazy)
 let isConnected = false;

@@ -2,14 +2,15 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import dbConnect from "./database";
-import adminRouter from "./routes/admin.js";
-import doctorRouter from "./routes/doctorRoute.js";
-import productRoutes from "./routes/productRoute.js";
-import callReportingRoutes from "./routes/callReportingRoute.js";
-import MRRoutes from "./routes/MRRoute.js";
-import requisitionRoutes from "./routes/requisitionRoute.js";
-import uploadFileRoutes from "./routes/uploadRoute.js";
-import ErrorHandler from "./middlewares/errorHandler.js";
+import adminRouter from "./routes/admin";
+import doctorRouter from "./routes/doctorRoute";
+import productRoutes from "./routes/productRoute";
+import callReportingRoutes from "./routes/callReportingRoute";
+import MRRoutes from "./routes/MRRoute";
+import requisitionRoutes from "./routes/requisitionRoute";
+import uploadFileRoutes from "./routes/uploadRoute";
+import ErrorHandler from "./middlewares/errorHandler";
+import { PORT } from "./config";
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ app.get("/", (req, res) => {
     time: new Date().toISOString(),
   });
 });
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // ✅ MongoDB connect once
 let isConnected = false;

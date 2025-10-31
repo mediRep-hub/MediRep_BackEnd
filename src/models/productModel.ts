@@ -8,6 +8,9 @@ const productSchema = new mongoose.Schema({
   productImage: { type: String, required: true },
   isStatus: { type: String, required: true },
   sku: { type: String, unique: true },
+
+  achievement: { type: Number, default: 0 },
+  target: { type: Number, default: 0 },
 });
 
 productSchema.pre("save", function (next) {
