@@ -1,6 +1,6 @@
 import Product from "../models/productModel";
 import { Request, Response } from "express";
-
+import csv from "csv-parser";
 // Add new product
 export const addProduct = async (req: Request, res: Response) => {
   try {
@@ -53,5 +53,35 @@ export const deleteProduct = async (req: Request, res: Response) => {
       .json({ success: true, message: "Product deleted successfully" });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const results: any[] = [];
+
+    const stream = req.file.buffer;
+    const readable = require("stream").Readable.from(stream.toString());
+    readable
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", async () => {
+        // Loop through CSV and update targets
+        for (const row of results) {
+          const { SKU, Target } = row;
+          await Product.updateOne(
+            { sku: SKU }, // match by SKU
+            { $set: { target: Number(Target) } } // update target
+          );
+        }
+
+        res
+          .status(200)
+          .json({ success: true, message: "Targets updated successfully" });
+      });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "CSV update failed" });
   }
 };
