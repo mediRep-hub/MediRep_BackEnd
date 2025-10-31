@@ -119,7 +119,6 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
 
     const results: any[] = [];
     const stream = req.file.buffer;
-
     const readable = require("stream").Readable.from(stream.toString());
 
     readable
@@ -127,13 +126,48 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
       .on("data", (row) => results.push(row))
       .on("end", async () => {
         const doctorsToAdd = [];
-        for (const row of results) {
-          const { name, email, specialization } = row;
 
-          if (!name || !email || !specialization) continue;
+        for (const row of results) {
+          const {
+            name,
+            specialty,
+            email,
+            phone,
+            address,
+            startTime,
+            endTime,
+            region,
+            area,
+            affiliation,
+            image,
+          } = row;
+
+          // Skip row if required fields are missing
+          if (!name || !email || !specialty) continue;
 
           const docId = await generateDocId();
-          doctorsToAdd.push({ name, email, specialization, docId });
+
+          doctorsToAdd.push({
+            docId,
+            name,
+            specialty,
+            email,
+            phone: phone || "",
+            address: address || "",
+            startTime: startTime || "",
+            endTime: endTime || "",
+            region: region || "",
+            area: area || "",
+            affiliation: affiliation || "",
+            image: image || "",
+          });
+        }
+
+        if (doctorsToAdd.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "No valid doctor data found in CSV",
+          });
         }
 
         const createdDoctors = await Doctor.insertMany(doctorsToAdd);
