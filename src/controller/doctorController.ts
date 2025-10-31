@@ -1,13 +1,12 @@
 import { Request, Response } from "express";
 import Doctor from "../models/doctorModel";
-
-// Helper to generate unique docId
+import csv from "csv-parser";
 const generateDocId = async (): Promise<string> => {
   let unique = false;
   let docId = "";
 
   while (!unique) {
-    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
     docId = `DOC${randomNum}`;
     const existing = await Doctor.findOne({ docId });
     if (!existing) unique = true;
@@ -16,10 +15,9 @@ const generateDocId = async (): Promise<string> => {
   return docId;
 };
 
-// ✅ Add a doctor
 export const addDoctor = async (req: Request, res: Response) => {
   try {
-    const docId = await generateDocId(); // generate unique doctor ID
+    const docId = await generateDocId();
     const doctor = new Doctor({ ...req.body, docId });
     await doctor.save();
 
@@ -112,6 +110,45 @@ export const deleteDoctor = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to delete doctor",
+    });
+  }
+};
+export const uploadDoctorsCSV = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const results: any[] = [];
+    const stream = req.file.buffer;
+
+    const readable = require("stream").Readable.from(stream.toString());
+
+    readable
+      .pipe(csv())
+      .on("data", (row) => results.push(row))
+      .on("end", async () => {
+        const doctorsToAdd = [];
+        for (const row of results) {
+          const { name, email, specialization } = row;
+
+          if (!name || !email || !specialization) continue;
+
+          const docId = await generateDocId();
+          doctorsToAdd.push({ name, email, specialization, docId });
+        }
+
+        const createdDoctors = await Doctor.insertMany(doctorsToAdd);
+
+        res.status(201).json({
+          success: true,
+          message: `${createdDoctors.length} doctors added successfully`,
+          data: createdDoctors,
+        });
+      });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to upload CSV",
     });
   }
 };
