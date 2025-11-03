@@ -123,7 +123,9 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
     }
 
     const results: any[] = [];
-    const stream = Readable.from(req.file.buffer); // ✅ Use buffer directly
+
+    // ✅ Convert buffer to a readable UTF-8 stream
+    const stream = Readable.from(req.file.buffer.toString("utf-8"));
 
     await new Promise<void>((resolve, reject) => {
       stream
@@ -134,15 +136,13 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
     });
 
     if (!results.length) {
-      return res.status(400).json({ message: "CSV is empty" });
+      return res.status(400).json({ message: "CSV is empty or invalid" });
     }
 
-    // ✅ Normalize and validate
-    const formattedDoctors: any[] = [];
-    for (const r of results) {
-      if (!r.name && !r.Name) continue; // skip invalid rows
-
-      formattedDoctors.push({
+    // ✅ Normalize and validate rows
+    const formattedDoctors = results
+      .filter((r) => r.name || r.Name) // Skip invalid rows
+      .map((r) => ({
         name: r.name || r.Name,
         specialty: r.specialty || r.Specialization || "",
         email: r.email || r.Email,
@@ -154,8 +154,7 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
         area: r.area || r.Area || "",
         affiliation: r.affiliation || r.Affiliation || "",
         image: r.image || r.Image || "",
-      });
-    }
+      }));
 
     if (!formattedDoctors.length) {
       return res
@@ -163,6 +162,7 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
         .json({ message: "No valid doctor records found in CSV." });
     }
 
+    // ✅ Insert all doctors at once
     await Doctor.insertMany(formattedDoctors, { ordered: false });
 
     return res.status(201).json({
