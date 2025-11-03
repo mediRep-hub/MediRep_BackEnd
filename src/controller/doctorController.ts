@@ -125,6 +125,7 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
     const results: any[] = [];
     const stream = Readable.from(req.file.buffer);
 
+    // ✅ Parse CSV file into results[]
     await new Promise<void>((resolve, reject) => {
       stream
         .pipe(csv())
@@ -134,53 +135,49 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
     });
 
     if (!results.length) {
-      return res.status(400).json({ message: "CSV file is empty" });
+      return res.status(400).json({ message: "CSV is empty" });
     }
 
-    let successCount = 0;
-    let failedCount = 0;
+    // ✅ Convert rows into doctor objects
+    const formattedDoctors = results
+      .map((r) => ({
+        name: r.name || r.Name || "",
+        specialty: r.specialty || r.Specialization || "",
+        email: r.email || r.Email || "",
+        phone: r.phone || r.Phone || "",
+        address: r.address || r.Address || "",
+        region: r.region || r.Region || "",
+        area: r.area || r.Area || "",
+        affiliation: r.affiliation || r.Affiliation || "",
+        startTime: r.startTime || r.StartTime || "",
+        endTime: r.endTime || r.EndTime || "",
+        image: r.image || r.Image || "",
+      }))
+      .filter((d) => d.name); // skip empty rows
 
-    for (const r of results) {
-      try {
-        // Skip empty or incomplete rows
-        if (!r.name && !r.Name) {
-          failedCount++;
-          continue;
-        }
-
-        // Create doctor entry
-        await Doctor.create({
-          name: r.name || r.Name,
-          specialty: r.specialty || r.Specialization || "",
-          email: r.email || r.Email || "",
-          phone: r.phone || r.Phone || "",
-          address: r.address || r.Address || "",
-          region: r.region || r.Region || "",
-          area: r.area || r.Area || "",
-          affiliation: r.affiliation || r.Affiliation || "",
-          startTime: r.startTime || r.StartTime || "",
-          endTime: r.endTime || r.EndTime || "",
-          image: r.image || r.Image || "",
-        });
-
-        successCount++;
-      } catch (err: any) {
-        console.error("❌ Error saving doctor:", err.message);
-        failedCount++;
-      }
+    if (!formattedDoctors.length) {
+      return res
+        .status(400)
+        .json({ message: "No valid doctor records found in CSV" });
     }
+
+    // ✅ Use insertMany with ordered:false to insert all, even if some fail
+    const result = await Doctor.insertMany(formattedDoctors, {
+      ordered: false,
+    });
 
     return res.status(201).json({
       success: true,
-      message: `✅ ${successCount} of ${results.length} doctors uploaded successfully!`,
-      successCount,
-      failedCount,
+      message: `✅ ${result.length} of ${formattedDoctors.length} doctors uploaded successfully!`,
+      uploadedDoctors: result.length,
+      totalDoctors: formattedDoctors.length,
     });
-  } catch (error: any) {
-    console.error("Upload error:", error);
+  } catch (err: any) {
+    console.error("Upload error:", err);
+
     return res.status(500).json({
       success: false,
-      message: error.message || "Server error while uploading doctors",
+      message: err.message || "Failed to upload all doctors",
     });
   }
 };
