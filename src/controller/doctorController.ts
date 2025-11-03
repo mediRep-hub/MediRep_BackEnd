@@ -115,6 +115,7 @@ export const deleteDoctor = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const uploadDoctorsCSV = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
@@ -122,33 +123,57 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
     }
 
     const results: any[] = [];
-    const stream = Readable.from(req.file.buffer.toString());
+    const stream = Readable.from(req.file.buffer); // ✅ Use buffer directly
 
-    stream
-      .pipe(csv())
-      .on("data", (row) => results.push(row))
-      .on("end", async () => {
-        if (!results.length)
-          return res.status(400).json({ message: "CSV is empty" });
+    await new Promise<void>((resolve, reject) => {
+      stream
+        .pipe(csv())
+        .on("data", (row) => results.push(row))
+        .on("end", resolve)
+        .on("error", reject);
+    });
 
-        // Example: make sure CSV has required columns
-        // Assuming your CSV has headers: name, email, phone, specialization
-        const formattedDoctors = results.map((r) => ({
-          name: r.name,
-          email: r.email,
-          phone: r.phone,
-          specialization: r.specialization,
-        }));
+    if (!results.length) {
+      return res.status(400).json({ message: "CSV is empty" });
+    }
 
-        await Doctor.insertMany(formattedDoctors, { ordered: false });
+    // ✅ Normalize and validate
+    const formattedDoctors: any[] = [];
+    for (const r of results) {
+      if (!r.name && !r.Name) continue; // skip invalid rows
 
-        return res.status(201).json({
-          success: true,
-          message: `${formattedDoctors.length} doctors uploaded successfully!`,
-        });
+      formattedDoctors.push({
+        name: r.name || r.Name,
+        specialty: r.specialty || r.Specialization || "",
+        email: r.email || r.Email,
+        phone: r.phone || r.Phone || "",
+        address: r.address || r.Address || "",
+        startTime: r.startTime || r.StartTime || "",
+        endTime: r.endTime || r.EndTime || "",
+        region: r.region || r.Region || "",
+        area: r.area || r.Area || "",
+        affiliation: r.affiliation || r.Affiliation || "",
+        image: r.image || r.Image || "",
       });
+    }
+
+    if (!formattedDoctors.length) {
+      return res
+        .status(400)
+        .json({ message: "No valid doctor records found in CSV." });
+    }
+
+    await Doctor.insertMany(formattedDoctors, { ordered: false });
+
+    return res.status(201).json({
+      success: true,
+      message: `${formattedDoctors.length} doctors uploaded successfully!`,
+    });
   } catch (err: any) {
     console.error("Upload error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Upload failed",
+    });
   }
 };
