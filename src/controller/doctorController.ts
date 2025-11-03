@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import Doctor from "../models/doctorModel";
-import csv from "csv-parser";
 import { Readable } from "stream";
+import csvParser from "csv-parser";
 
 const generateDocId = async (): Promise<string> => {
   let unique = false;
@@ -118,62 +118,66 @@ export const deleteDoctor = async (req: Request, res: Response) => {
 
 export const uploadDoctorsCSV = async (req: Request, res: Response) => {
   try {
+    // 🧩 Validate file presence
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
     const results: any[] = [];
-    const stream = Readable.from(req.file.buffer); // ✅ Use buffer directly
+    const stream = Readable.from(req.file.buffer); // ✅ Use buffer — works on Vercel
 
+    // 🧩 Parse CSV into results[]
     await new Promise<void>((resolve, reject) => {
       stream
-        .pipe(csv())
+        .pipe(csvParser())
         .on("data", (row) => results.push(row))
         .on("end", resolve)
         .on("error", reject);
     });
 
-    if (!results.length) {
-      return res.status(400).json({ message: "CSV is empty" });
+    if (results.length === 0) {
+      return res.status(400).json({ message: "CSV is empty or invalid" });
     }
 
-    // ✅ Normalize and validate
-    const formattedDoctors: any[] = [];
-    for (const r of results) {
-      if (!r.name && !r.Name) continue; // skip invalid rows
+    // 🧩 Normalize & filter valid doctor rows
+    const formattedDoctors: any[] = results
+      .map((r) => ({
+        name: r.name?.trim() || r.Name?.trim(),
+        specialty: r.specialty?.trim() || r.Specialization?.trim() || "",
+        email: r.email?.trim() || r.Email?.trim(),
+        phone: r.phone?.trim() || r.Phone?.trim(),
+        address: r.address?.trim() || r.Address?.trim(),
+        startTime: r.startTime?.trim() || r.StartTime?.trim() || "",
+        endTime: r.endTime?.trim() || r.EndTime?.trim() || "",
+        region: r.region?.trim() || r.Region?.trim() || "",
+        area: r.area?.trim() || r.Area?.trim() || "",
+        affiliation: r.affiliation?.trim() || r.Affiliation?.trim() || "",
+        image: r.image?.trim() || r.Image?.trim() || "",
+      }))
+      .filter((d) => !!d.name); // skip rows without a doctor name
 
-      formattedDoctors.push({
-        name: r.name || r.Name,
-        specialty: r.specialty || r.Specialization || "",
-        email: r.email || r.Email,
-        phone: r.phone || r.Phone || "",
-        address: r.address || r.Address || "",
-        startTime: r.startTime || r.StartTime || "",
-        endTime: r.endTime || r.EndTime || "",
-        region: r.region || r.Region || "",
-        area: r.area || r.Area || "",
-        affiliation: r.affiliation || r.Affiliation || "",
-        image: r.image || r.Image || "",
-      });
-    }
-
-    if (!formattedDoctors.length) {
+    if (formattedDoctors.length === 0) {
       return res
         .status(400)
-        .json({ message: "No valid doctor records found in CSV." });
+        .json({ message: "No valid doctor records found in CSV" });
     }
 
-    await Doctor.insertMany(formattedDoctors, { ordered: false });
+    // 🧩 Insert into DB — allow partial success
+    const inserted = await Doctor.insertMany(formattedDoctors, {
+      ordered: false, // continue even if some fail (e.g., duplicates)
+    });
 
     return res.status(201).json({
       success: true,
-      message: `${formattedDoctors.length} doctors uploaded successfully!`,
+      uploaded: inserted.length,
+      total: formattedDoctors.length,
+      message: `✅ ${inserted.length} of ${formattedDoctors.length} doctors uploaded successfully!`,
     });
   } catch (err: any) {
-    console.error("Upload error:", err);
+    console.error("❌ Upload CSV error:", err);
     return res.status(500).json({
       success: false,
-      message: err.message || "Upload failed",
+      message: err.message || "Failed to upload doctors",
     });
   }
 };
