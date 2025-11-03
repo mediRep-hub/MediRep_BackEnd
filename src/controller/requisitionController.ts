@@ -16,7 +16,6 @@ const generateReqId = async () => {
 
   return reqId;
 };
-// Add a new requisition
 export const addRequisition = async (
   req: Request,
   res: Response,

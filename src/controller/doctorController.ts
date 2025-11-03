@@ -122,8 +122,7 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
     }
 
     const results: any[] = [];
-    const stream = require("stream").Readable.from(req.file.buffer.toString());
-    const csv = require("csv-parser");
+    const stream = Readable.from(req.file.buffer.toString());
 
     stream
       .pipe(csv())
@@ -132,11 +131,24 @@ export const uploadDoctorsCSV = async (req: Request, res: Response) => {
         if (!results.length)
           return res.status(400).json({ message: "CSV is empty" });
 
-        // process rows...
-        res.status(201).json({ success: true, message: "Doctors added" });
+        // Example: make sure CSV has required columns
+        // Assuming your CSV has headers: name, email, phone, specialization
+        const formattedDoctors = results.map((r) => ({
+          name: r.name,
+          email: r.email,
+          phone: r.phone,
+          specialization: r.specialization,
+        }));
+
+        await Doctor.insertMany(formattedDoctors, { ordered: false });
+
+        return res.status(201).json({
+          success: true,
+          message: `${formattedDoctors.length} doctors uploaded successfully!`,
+        });
       });
   } catch (err: any) {
-    console.error(err);
+    console.error("Upload error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
