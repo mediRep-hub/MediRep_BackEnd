@@ -17,10 +17,10 @@ export interface IDoctor extends Document {
 
 const DoctorSchema: Schema = new Schema(
   {
-    docId: { type: String, unique: true }, // 👈 store auto-generated ID here
+    docId: { type: String, unique: false }, // 👈 store auto-generated ID here
     name: { type: String, required: true },
     specialty: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: false },
     phone: { type: String, required: true },
     address: { type: String, required: true },
     startTime: { type: String, required: true },

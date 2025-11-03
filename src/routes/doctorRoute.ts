@@ -5,7 +5,7 @@ import {
   updateDoctor,
   deleteDoctor,
   getAllDoctors,
-  uploadDoctorsCSV,
+  uploadCSVDoctor,
 } from "../controller/doctorController";
 import multer from "multer";
 
@@ -17,6 +17,6 @@ router.get("/getAllDoctor", getAllDoctors);
 router.get("/getSingleDoctor/:id", getDoctorById);
 router.put("/updateDoctor/:id", updateDoctor);
 router.delete("/deleteDoctor/:id", deleteDoctor);
-router.post("/uploadDoctorsCSV", upload.single("file"), uploadDoctorsCSV);
+router.post("/uploadDoctorsCSV", upload.single("file"), uploadCSVDoctor);
 
 export default router;

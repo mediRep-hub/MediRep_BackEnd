@@ -116,68 +116,59 @@ export const deleteDoctor = async (req: Request, res: Response) => {
   }
 };
 
-export const uploadDoctorsCSV = async (req: Request, res: Response) => {
+export const uploadCSVDoctor = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded." });
     }
 
-    const results: any[] = [];
+    const rows = [];
     const stream = Readable.from(req.file.buffer);
 
-    // ✅ Parse CSV file into results[]
-    await new Promise<void>((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       stream
         .pipe(csv())
-        .on("data", (row) => results.push(row))
+        .on("data", (row) => rows.push(row))
         .on("end", resolve)
         .on("error", reject);
     });
 
-    if (!results.length) {
-      return res.status(400).json({ message: "CSV is empty" });
+    if (!rows.length) {
+      return res.status(400).json({ success: false, message: "CSV is empty" });
     }
 
-    // ✅ Convert rows into doctor objects
-    const formattedDoctors = results
-      .map((r) => ({
+    // Generate unique docIds
+    const doctorsWithIds = await Promise.all(
+      rows.map(async (r) => ({
+        docId: `DOC${Math.floor(1000 + Math.random() * 9000)}`,
         name: r.name || r.Name || "",
-        specialty: r.specialty || r.Specialization || "",
+        specialty: r.specialty || r.Specialty || "",
         email: r.email || r.Email || "",
         phone: r.phone || r.Phone || "",
         address: r.address || r.Address || "",
+        startTime: r.startTime || r.StartTime || "",
+        endTime: r.endTime || r.EndTime || "",
         region: r.region || r.Region || "",
         area: r.area || r.Area || "",
         affiliation: r.affiliation || r.Affiliation || "",
-        startTime: r.startTime || r.StartTime || "",
-        endTime: r.endTime || r.EndTime || "",
         image: r.image || r.Image || "",
       }))
-      .filter((d) => d.name); // skip empty rows
+    );
 
-    if (!formattedDoctors.length) {
-      return res
-        .status(400)
-        .json({ message: "No valid doctor records found in CSV" });
-    }
-
-    // ✅ Use insertMany with ordered:false to insert all, even if some fail
-    const result = await Doctor.insertMany(formattedDoctors, {
+    const inserted = await Doctor.insertMany(doctorsWithIds, {
       ordered: false,
     });
-
     return res.status(201).json({
       success: true,
-      message: `✅ ${result.length} of ${formattedDoctors.length} doctors uploaded successfully!`,
-      uploadedDoctors: result.length,
-      totalDoctors: formattedDoctors.length,
+      message: `✅ ${inserted.length} of ${doctorsWithIds.length} doctors uploaded successfully!`,
     });
-  } catch (err: any) {
-    console.error("Upload error:", err);
-
+  } catch (err) {
+    console.error("Upload CSV Error:", err);
     return res.status(500).json({
       success: false,
-      message: err.message || "Failed to upload all doctors",
+      message: err.message || "Upload failed",
     });
   }
 };
