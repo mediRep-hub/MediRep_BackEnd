@@ -8,6 +8,7 @@ import productRoutes from "../src/routes/productRoute";
 import callReportingRoutes from "../src/routes/callReportingRoute";
 import MRRoutes from "../src/routes/MRRoute";
 import requisitionRoutes from "../src/routes/requisitionRoute";
+import strategyRoutes from "../src/routes/strategyRoutes";
 import uploadFileRoutes from "../src/routes/uploadRoute";
 import ErrorHandler from "../src/middlewares/errorHandler";
 import { PORT } from "../src/config";
@@ -70,6 +71,7 @@ app.use("/callreport", callReportingRoutes);
 app.use("/manageMr", MRRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
+app.use("/strategy", strategyRoutes);
 
 app.use(ErrorHandler);
 
