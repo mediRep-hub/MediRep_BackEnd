@@ -16,72 +16,33 @@ const generateReqId = async () => {
 
   return reqId;
 };
-export const addRequisition = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const addRequisition = async (req, res) => {
   try {
-    const {
-      mrName,
-      doctor,
-      doctorName,
-      attachedDoc,
-      details,
-      product,
-      startingDate,
-      quantity,
-      duration,
-      amount,
-      paymentType,
-      remarks,
-    } = req.body;
-
-    const reqId = await generateReqId();
-
-    const newRequisition = new Requisition({
-      reqId,
-      mrName,
-      doctor,
-      doctorName,
-      attachedDoc,
-      details,
-      product,
-      startingDate,
-      quantity,
-      duration,
-      amount,
-      paymentType,
-      remarks: remarks || undefined,
-      accepted: false,
-      status: "Pending",
+    const newReq = new Requisition({
+      ...req.body, // req.body should contain doctor (ObjectId), doctorName, product, etc.
     });
 
-    const savedRequisition = await newRequisition.save();
+    const savedReq = await newReq.save();
+    await savedReq.populate("doctor", "name image specialty"); // populate before sending response
 
-    return res.status(201).json({
-      success: true,
-      message: "Requisition created successfully",
-      requisition: savedRequisition,
-    });
-  } catch (error) {
-    console.error("Error adding requisition:", error);
-    return next(error);
+    res.status(201).json(savedReq);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Get all requisitions
-export const getAllRequisitions = async (req: Request, res: Response) => {
+export const getAllRequisitions = async (req, res) => {
   try {
     const requisitions = await Requisition.find().populate(
       "doctor",
       "name image specialty"
     );
     res.status(200).json(requisitions);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 export const getSingleRequisition = async (req: Request, res: Response) => {
   try {
     const requisition = await Requisition.findById(req.params.id);
