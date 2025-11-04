@@ -15,18 +15,12 @@ const callReportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    doctorAddress: {
-      type: String,
-      required: true,
-    },
+
     area: {
       type: String,
       required: true,
     },
-    date: {
-      type: Date,
-      required: true,
-    },
+
     checkIn: {
       type: String,
       required: true,
@@ -34,28 +28,6 @@ const callReportSchema = new mongoose.Schema(
     checkOut: {
       type: String,
       required: true,
-    },
-    duration: {
-      type: String,
-      required: true,
-    },
-    productDiscussed: {
-      type: String,
-      required: true,
-    },
-    type: {
-      type: String,
-      required: true,
-    },
-    notes: {
-      type: String,
-    },
-    nextVisitDate: {
-      type: Date,
-    },
-    checkInLocation: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
     },
   },
   { timestamps: true }
