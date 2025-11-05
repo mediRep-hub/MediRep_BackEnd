@@ -16,19 +16,15 @@ export const addProduct = async (req: Request, res: Response) => {
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const { sku, productName } = req.query;
-
-    // Build filter dynamically
     const filter: any = {};
 
     if (sku) {
-      filter.sku = { $regex: new RegExp(sku as string, "i") }; // case-insensitive match
+      filter.sku = { $regex: new RegExp(sku as string, "i") };
     }
 
     if (productName) {
-      filter.productName = { $regex: new RegExp(productName as string, "i") }; // case-insensitive match
+      filter.productName = { $regex: new RegExp(productName as string, "i") };
     }
-
-    // Fetch filtered or all products
     const products = await Product.find(filter).sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, data: products });
