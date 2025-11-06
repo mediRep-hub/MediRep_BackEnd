@@ -13,14 +13,12 @@ export interface IDoctor extends Document {
   area: string;
   affiliation: string;
   image: string;
-  packSize: string;
 }
 
 const DoctorSchema: Schema = new Schema(
   {
     docId: { type: String, unique: false },
     name: { type: String, required: true },
-    packSize: { type: String, required: true },
     specialty: { type: String, required: true },
     email: { type: String, required: true, unique: false },
     phone: { type: String, required: true },
