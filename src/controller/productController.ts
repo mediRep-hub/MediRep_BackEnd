@@ -13,7 +13,6 @@ export const addProduct = async (req: Request, res: Response) => {
 };
 
 // Get all products
-// Get all products
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const { sku, productName } = req.query;
@@ -27,16 +26,26 @@ export const getAllProducts = async (req: Request, res: Response) => {
       filter.productName = { $regex: new RegExp(productName as string, "i") };
     }
 
-    // ✅ Fetch products based on filters
+    // ✅ Fetch filtered products
     const products = await Product.find(filter).sort({ createdAt: -1 });
 
-    // ✅ Get unique category list (no repeats)
-    const categoryList = await Product.distinct("category");
+    // ✅ Aggregate categories with count and total targetAchievement
+    const categoryStats = await Product.aggregate([
+      {
+        $group: {
+          _id: "$category", // category name or id
+          productCount: { $sum: 1 }, // total number of products
+          totalTargetAchievement: { $sum: "$targetAchievement" }, // total target achievement
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
 
+    // ✅ Send combined response
     res.status(200).json({
       success: true,
       data: products,
-      categoryList,
+      categorySummary: categoryStats, // each category with count + target achievement
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

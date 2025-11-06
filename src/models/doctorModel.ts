@@ -33,10 +33,9 @@ const DoctorSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// ✅ Pre-save middleware to generate unique docId
 DoctorSchema.pre("save", async function (next) {
   if (!this.docId) {
-    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
     this.docId = `DOC${randomNum}`;
   }
   next();
