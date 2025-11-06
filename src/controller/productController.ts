@@ -13,6 +13,7 @@ export const addProduct = async (req: Request, res: Response) => {
 };
 
 // Get all products
+// Get all products
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const { sku, productName } = req.query;
@@ -25,9 +26,18 @@ export const getAllProducts = async (req: Request, res: Response) => {
     if (productName) {
       filter.productName = { $regex: new RegExp(productName as string, "i") };
     }
+
+    // ✅ Fetch products based on filters
     const products = await Product.find(filter).sort({ createdAt: -1 });
 
-    res.status(200).json({ success: true, data: products });
+    // ✅ Get unique category list (no repeats)
+    const categoryList = await Product.distinct("category");
+
+    res.status(200).json({
+      success: true,
+      data: products,
+      categoryList,
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
