@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Strategy from "../models/strategyModel";
+import doctorModel from "../models/doctorModel";
 
 export const addStrategy = async (req: Request, res: Response) => {
   try {
@@ -20,13 +21,30 @@ export const addStrategy = async (req: Request, res: Response) => {
 };
 
 // ✅ Get all strategies
+
 export const getAllStrategies = async (req: Request, res: Response) => {
   try {
+    // Fetch all strategies
     const strategies = await Strategy.find().sort({ createdAt: -1 });
+
+    // For each strategy, fetch full doctor data by name
+    const enrichedStrategies = await Promise.all(
+      strategies.map(async (strategy) => {
+        const doctors = await doctorModel.find({
+          name: { $in: strategy.doctorList },
+        });
+
+        return {
+          ...strategy.toObject(),
+          doctorList: doctors, // replace names with full doctor objects
+        };
+      })
+    );
+
     res.status(200).json({
       success: true,
-      count: strategies.length,
-      data: strategies,
+      count: enrichedStrategies.length,
+      data: enrichedStrategies,
     });
   } catch (error: any) {
     res.status(500).json({

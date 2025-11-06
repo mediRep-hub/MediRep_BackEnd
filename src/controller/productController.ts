@@ -33,19 +33,27 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const categoryStats = await Product.aggregate([
       {
         $group: {
-          _id: "$category", // category name or id
-          productCount: { $sum: 1 }, // total number of products
-          totalTargetAchievement: { $sum: "$targetAchievement" }, // total target achievement
+          _id: "$category", // Group by category
+          productCount: { $sum: 1 },
+          totalTargetAchievement: { $sum: "$targetAchievement" },
         },
       },
-      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0, // remove default _id
+          name: "$_id", // rename _id to name
+          productCount: 1,
+          totalTargetAchievement: 1,
+        },
+      },
+      { $sort: { name: 1 } },
     ]);
 
     // ✅ Send combined response
     res.status(200).json({
       success: true,
       data: products,
-      categorySummary: categoryStats, // each category with count + target achievement
+      categorySummary: categoryStats,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
