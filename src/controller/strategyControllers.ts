@@ -32,10 +32,14 @@ export const getAllStrategies = async (req: Request, res: Response) => {
           name: { $in: strategy.doctorList },
         });
 
-        // Preserve original order from strategy.doctorList
-        const orderedDoctors = strategy.doctorList.map((name) =>
-          doctors.find((doc) => doc.name === name)
-        );
+        // Preserve original order and add isComplete: false
+        const orderedDoctors = strategy.doctorList.map((name) => {
+          const doc = doctors.find((d) => d.name === name);
+          return {
+            ...doc?.toObject(), // convert Mongoose doc to plain object
+            isComplete: false, // default value
+          };
+        });
 
         return {
           ...strategy.toObject(),
