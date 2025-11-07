@@ -70,44 +70,8 @@ export const getStrategyById = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Update strategy
-export const updateStrategy = async (req: Request, res: Response) => {
-  try {
-    const { doctorList } = req.body;
-
-    // Only allow updating the doctorList order
-    if (!Array.isArray(doctorList)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "doctorList must be an array" });
-    }
-
-    const updated = await Strategy.findByIdAndUpdate(
-      req.params.id,
-      { doctorList }, // Only update doctorList
-      { new: true }
-    );
-
-    if (!updated) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Strategy not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Doctor list order updated successfully",
-      data: updated,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to update doctor list order",
-    });
-  }
-};
-
 export const deleteStrategy = async (req: Request, res: Response) => {
+  console.log("📦 Payload sent to server:");
   try {
     const deleted = await Strategy.findByIdAndDelete(req.params.id);
     if (!deleted)
@@ -123,6 +87,46 @@ export const deleteStrategy = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to delete strategy",
+    });
+  }
+};
+// ✅ Update a strategy
+
+// ✅ Update a strategy
+export const updateStrategy = async (req: Request, res: Response) => {
+  try {
+    const strategyId = req.params.id;
+    const updateData = req.body;
+
+    // Find the strategy by ID and update it
+    const updatedStrategy = await Strategy.findByIdAndUpdate(
+      strategyId,
+      updateData,
+      { new: true, runValidators: true } // return updated document & validate
+    );
+
+    if (!updatedStrategy) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Strategy not found" });
+    }
+    let enrichedStrategy = updatedStrategy.toObject();
+    if (updateData.doctorList && updateData.doctorList.length > 0) {
+      const doctors = await doctorModel.find({
+        name: { $in: updateData.doctorList },
+      });
+      enrichedStrategy.doctorList = doctors.map((doc) => doc.name);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Strategy updated successfully",
+      data: enrichedStrategy,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update strategy",
     });
   }
 };
