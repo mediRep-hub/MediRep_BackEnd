@@ -9,6 +9,7 @@ export interface IStrategy extends Document {
   mrName: string;
   doctorList: string[];
   activeRequisition?: string;
+  isComplete: boolean;
 }
 
 const StrategySchema: Schema = new Schema(
@@ -21,6 +22,7 @@ const StrategySchema: Schema = new Schema(
     activeRequisition: { type: String, default: "0" },
     mrName: { type: String, required: true },
     doctorList: [{ type: String, required: true }],
+    isComplete: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
