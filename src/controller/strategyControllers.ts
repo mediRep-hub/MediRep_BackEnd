@@ -24,17 +24,22 @@ export const addStrategy = async (req: Request, res: Response) => {
 
 export const getAllStrategies = async (req: Request, res: Response) => {
   try {
-    // Fetch all strategies
     const strategies = await Strategy.find().sort({ createdAt: -1 });
+
     const enrichedStrategies = await Promise.all(
       strategies.map(async (strategy) => {
         const doctors = await doctorModel.find({
           name: { $in: strategy.doctorList },
         });
 
+        // Preserve original order from strategy.doctorList
+        const orderedDoctors = strategy.doctorList.map((name) =>
+          doctors.find((doc) => doc.name === name)
+        );
+
         return {
           ...strategy.toObject(),
-          doctorList: doctors, // replace names with full doctor objects
+          doctorList: orderedDoctors,
         };
       })
     );
@@ -90,43 +95,24 @@ export const deleteStrategy = async (req: Request, res: Response) => {
     });
   }
 };
-// ✅ Update a strategy
 
 // ✅ Update a strategy
 export const updateStrategy = async (req: Request, res: Response) => {
   try {
-    const strategyId = req.params.id;
-    const updateData = req.body;
-
-    // Find the strategy by ID and update it
-    const updatedStrategy = await Strategy.findByIdAndUpdate(
-      strategyId,
-      updateData,
-      { new: true, runValidators: true } // return updated document & validate
+    const strategy = await Strategy.findByIdAndUpdate(
+      req.params.id,
+      { doctorList: req.body.doctorList }, // save exactly as received
+      { new: true }
     );
 
-    if (!updatedStrategy) {
+    if (!strategy) {
       return res
         .status(404)
         .json({ success: false, message: "Strategy not found" });
     }
-    let enrichedStrategy = updatedStrategy.toObject();
-    if (updateData.doctorList && updateData.doctorList.length > 0) {
-      const doctors = await doctorModel.find({
-        name: { $in: updateData.doctorList },
-      });
-      enrichedStrategy.doctorList = doctors.map((doc) => doc.name);
-    }
 
-    res.status(200).json({
-      success: true,
-      message: "Strategy updated successfully",
-      data: enrichedStrategy,
-    });
+    res.status(200).json({ success: true, data: strategy });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to update strategy",
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
