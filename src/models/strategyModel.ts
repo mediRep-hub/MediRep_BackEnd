@@ -7,6 +7,7 @@ export interface IStrategy extends Document {
   route: string;
   day: string;
   mrName: string;
+  mrId?: string; // 👈 Added this line
   doctorList: string[];
   activeRequisition?: string;
 }
@@ -20,6 +21,7 @@ const StrategySchema: Schema = new Schema(
     day: { type: String, required: true },
     activeRequisition: { type: String, default: "0" },
     mrName: { type: String, required: true },
+    mrId: { type: String }, // 👈 Added here
     doctorList: [{ type: String, required: true }],
   },
   { timestamps: true }
