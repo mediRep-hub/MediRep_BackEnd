@@ -19,7 +19,7 @@ export interface IAdmin extends Document {
 
 const adminSchema: Schema<IAdmin> = new Schema(
   {
-    adminId: { type: String, required: true, unique: true }, // <-- Added
+    adminId: { type: String, required: true, unique: true },
     name: { type: String, required: true, unique: true },
     phoneNumber: { type: String, required: true },
     email: { type: String, required: true, unique: true },
