@@ -36,20 +36,26 @@ export const addStrategy = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Get all strategies (filter by MR if mrId is provided)
 export const getAllStrategies = async (req: Request, res: Response) => {
   try {
-    // Read mrName either from token or query
     const mrNameFromToken = req.user?.name;
     const mrNameFromQuery = req.query.mrName as string;
-
-    // Use query first (if provided), otherwise token name
     const mrName = mrNameFromQuery || mrNameFromToken;
 
-    // If mrName exists, filter by it — otherwise get all
     const filter = mrName ? { mrName } : {};
 
-    const strategies = await Strategy.find(filter);
+    // 🧩 Use aggregation to merge doctor details directly into doctorList
+    const strategies = await Strategy.aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: "doctors", // 👈 must match MongoDB collection name
+          localField: "doctorList", // field in Strategy
+          foreignField: "name", // field in Doctor
+          as: "doctorList", // overwrite doctorList with doctor data
+        },
+      },
+    ]);
 
     if (!strategies.length) {
       return res.status(404).json({
@@ -64,6 +70,7 @@ export const getAllStrategies = async (req: Request, res: Response) => {
       data: strategies,
     });
   } catch (error: any) {
+    console.error("Error fetching strategies:", error);
     res.status(500).json({
       success: false,
       message: "Server error",

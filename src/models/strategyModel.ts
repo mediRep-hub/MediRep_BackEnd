@@ -7,22 +7,25 @@ export interface IStrategy extends Document {
   route: string;
   day: string;
   mrName: string;
-  mrId?: string; // 👈 Added this line
-  doctorList: string[];
-  activeRequisition?: string;
+  doctorList: mongoose.Types.ObjectId[];
+  activeRequisition: string;
 }
 
-const StrategySchema: Schema = new Schema(
+const StrategySchema = new Schema<IStrategy>(
   {
-    region: { type: String, required: true },
-    area: { type: String, required: true },
-    strategyName: { type: String, required: true },
-    route: { type: String, required: true },
-    day: { type: String, required: true },
-    activeRequisition: { type: String, default: "0" },
-    mrName: { type: String, required: true },
-    mrId: { type: String }, // 👈 Added here
-    doctorList: [{ type: String, required: true }],
+    region: String,
+    area: String,
+    strategyName: String,
+    route: String,
+    day: String,
+    activeRequisition: String,
+    mrName: String,
+    doctorList: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Doctor", // 👈 this MUST match your Doctor model name
+      },
+    ],
   },
   { timestamps: true }
 );
