@@ -19,7 +19,7 @@ const callReportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    area: {
+    strategyName: {
       type: String,
       required: true,
     },
@@ -43,15 +43,33 @@ const callReportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    type: {
+    doctorResponse: {
       type: String,
       required: true,
     },
-    notes: {
+    promotionalMaterialGiven: {
       type: String,
+      required: true,
     },
-    nextVisitDate: {
-      type: Date,
+    followUpRequired: {
+      type: Boolean,
+      default: false,
+    },
+    doctorPurchaseInterest: {
+      type: String,
+      required: true,
+    },
+    keyDiscussionPoints: {
+      type: String,
+      required: true,
+    },
+    doctorConcerns: {
+      type: String,
+      required: true,
+    },
+    area: {
+      type: String,
+      required: true,
     },
     checkInLocation: {
       lat: { type: Number, required: true },
