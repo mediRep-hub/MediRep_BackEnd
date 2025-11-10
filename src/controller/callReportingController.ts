@@ -38,7 +38,7 @@ export const addCallReport = async (req: Request, res: Response) => {
       keyDiscussionPoints,
       doctorConcerns,
       area,
-      discustionType,
+      discussionType,
       nextVisitDate,
       checkInLocation,
     } = req.body;
@@ -61,7 +61,7 @@ export const addCallReport = async (req: Request, res: Response) => {
       keyDiscussionPoints,
       doctorConcerns,
       area,
-      discustionType,
+      discussionType,
       nextVisitDate,
       checkInLocation,
     });
@@ -134,7 +134,7 @@ export const updateCallReport = async (req: Request, res: Response) => {
       "keyDiscussionPoints",
       "doctorConcerns",
       "area",
-      "discustionType",
+      "discussionType",
       "nextVisitDate",
       "checkInLocation",
     ];
