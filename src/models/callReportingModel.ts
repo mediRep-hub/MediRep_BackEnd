@@ -11,7 +11,6 @@ const callReportSchema = new mongoose.Schema(
     doctorName: { type: String, required: true },
     doctorAddress: { type: String, required: true },
     strategyName: { type: String, required: true },
-    date: { type: Date, required: true },
     checkIn: { type: String, required: true },
     checkOut: { type: String, required: true },
     duration: { type: String, required: true },
