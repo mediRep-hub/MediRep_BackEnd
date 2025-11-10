@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { nanoid } from "nanoid"; // for unique callId
 
 const callReportingSchema = new mongoose.Schema(
   {
@@ -14,7 +13,7 @@ const callReportingSchema = new mongoose.Schema(
     activeRequisition: { type: String },
 
     // Call report-related fields
-    callId: { type: String, unique: true, default: () => nanoid(10) }, // auto-generated
+    callId: { type: String, unique: true }, // auto-generated
     doctorName: { type: String },
     doctorAddress: { type: String },
     checkIn: { type: String },
