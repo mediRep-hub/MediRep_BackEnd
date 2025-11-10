@@ -18,7 +18,7 @@ const callReportSchema = new mongoose.Schema(
     productDiscussed: { type: String, required: true },
     doctorResponse: { type: String, required: true },
     promotionalMaterialGiven: { type: String, required: true },
-    followUpRequired: { type: Boolean, default: false },
+    followUpRequired: { type: String, required: true },
     doctorPurchaseInterest: { type: String, required: true },
     nextVisitDate: { type: Date },
     keyDiscussionPoints: { type: String, required: true },
