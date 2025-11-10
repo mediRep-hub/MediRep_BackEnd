@@ -20,7 +20,10 @@ const adminAuthController = {
   // 🧾 REGISTER
   async register(req: Request, res: Response, next: NextFunction) {
     const adminRegisterSchema = Joi.object({
-      name: Joi.string().required().message("Name is Already Exist"),
+      name: Joi.string().required().messages({
+        "any.required": "Name is required",
+      }),
+
       phoneNumber: Joi.string().required(),
       email: Joi.string().email().required(),
       password: Joi.string()
