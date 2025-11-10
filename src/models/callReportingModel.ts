@@ -1,35 +1,51 @@
 import mongoose from "mongoose";
+import { nanoid } from "nanoid"; // for unique callId
 
-const callReportSchema = new mongoose.Schema(
+const callReportingSchema = new mongoose.Schema(
   {
-    callId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    mrName: { type: String, required: true },
-    doctorName: { type: String, required: true },
-    doctorAddress: { type: String, required: true },
-    strategyName: { type: String, required: true },
-    checkIn: { type: String, required: true },
-    checkOut: { type: String, required: true },
-    duration: { type: String, required: true },
-    productDiscussed: { type: String, required: true },
-    doctorResponse: { type: String, required: true },
-    promotionalMaterialGiven: { type: String, required: true },
-    followUpRequired: { type: String, required: true },
-    doctorPurchaseInterest: { type: String, required: true },
+    // Strategy-related fields
+    region: { type: String },
+    area: { type: String },
+    strategyName: { type: String },
+    route: { type: String },
+    day: { type: String },
+    mrName: { type: String },
+    doctorList: [{ type: mongoose.Schema.Types.ObjectId, ref: "Doctor" }],
+    activeRequisition: { type: String },
+
+    // Call report-related fields
+    callId: { type: String, unique: true, default: () => nanoid(10) }, // auto-generated
+    doctorName: { type: String },
+    doctorAddress: { type: String },
+    checkIn: { type: String },
+    checkOut: { type: String },
+    duration: { type: String },
+    productDiscussed: { type: String },
+    doctorResponse: { type: String },
+    promotionalMaterialGiven: { type: String },
+    followUpRequired: { type: String },
+    doctorPurchaseInterest: { type: String },
     nextVisitDate: { type: Date },
-    keyDiscussionPoints: { type: String, required: true },
-    doctorConcerns: { type: String, required: true },
-    area: { type: String, required: true },
-    discussionType: { type: String, required: true },
+    keyDiscussionPoints: { type: String },
+    doctorConcerns: { type: String },
+    discussionType: { type: String },
     checkInLocation: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
+      lat: { type: Number },
+      lng: { type: Number },
     },
+
+    // Extra fields
+    status: {
+      type: String,
+      enum: ["pending", "completed"],
+      default: "pending",
+    },
+    doctorAvailability: { type: String },
+    reason: { type: String },
   },
   { timestamps: true }
 );
 
-export const CallReport = mongoose.model("CallReport", callReportSchema);
+const CallReporting = mongoose.model("CallReporting", callReportingSchema);
+
+export default CallReporting;
