@@ -38,6 +38,8 @@ export const addCallReport = async (req: Request, res: Response) => {
       keyDiscussionPoints,
       doctorConcerns,
       area,
+      discustionType,
+      nextVisitDate,
       checkInLocation,
     } = req.body;
 
@@ -59,6 +61,8 @@ export const addCallReport = async (req: Request, res: Response) => {
       keyDiscussionPoints,
       doctorConcerns,
       area,
+      discustionType,
+      nextVisitDate,
       checkInLocation,
     });
 
@@ -96,7 +100,6 @@ export const getAllCallReports = async (req: Request, res: Response) => {
   }
 };
 
-// Get single report by ID
 export const getCallReportById = async (req: Request, res: Response) => {
   try {
     const report = await CallReport.findById(req.params.id);
@@ -131,6 +134,8 @@ export const updateCallReport = async (req: Request, res: Response) => {
       "keyDiscussionPoints",
       "doctorConcerns",
       "area",
+      "discustionType",
+      "nextVisitDate",
       "checkInLocation",
     ];
 

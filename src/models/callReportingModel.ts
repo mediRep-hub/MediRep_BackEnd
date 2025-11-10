@@ -52,11 +52,15 @@ const callReportSchema = new mongoose.Schema(
       required: true,
     },
     followUpRequired: {
-      type: Boolean,
-      default: false,
+      type: String,
+      required: true,
     },
     doctorPurchaseInterest: {
       type: String,
+      required: true,
+    },
+    nextVisitDate: {
+      type: Date,
       required: true,
     },
     keyDiscussionPoints: {
@@ -68,6 +72,10 @@ const callReportSchema = new mongoose.Schema(
       required: true,
     },
     area: {
+      type: String,
+      required: true,
+    },
+    discustionType: {
       type: String,
       required: true,
     },
