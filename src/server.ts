@@ -10,6 +10,7 @@ import MRRoutes from "./routes/MRRoute";
 import requisitionRoutes from "./routes/requisitionRoute";
 import uploadFileRoutes from "./routes/uploadRoute";
 import strategyRoutes from "./routes/strategyRoutes";
+import orderRoutes from "./routes/orderRoutes";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
 
@@ -73,6 +74,7 @@ app.use("/manageMr", MRRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/strategy", strategyRoutes);
+app.use("/orders", orderRoutes);
 
 app.use(ErrorHandler);
 
