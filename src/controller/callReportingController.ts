@@ -84,10 +84,23 @@ export const getAllCallReports = async (req, res) => {
     }
 
     const reports = await CallReporting.find(filter)
-      .populate("doctorList.doctor", "name") // Populate doctors with name only
-      .populate("mrName"); // Populate full MR details
+      .populate("doctorList.doctor") // full doctor data
+      .populate("mrName"); // full MR data
 
-    res.status(200).json({ success: true, data: reports });
+    // Add mrStatus for each report
+    const reportsWithStatus = reports.map((report) => {
+      const totalCalls = report.doctorList.length;
+      const completedCalls = report.doctorList.filter(
+        (doc) => doc.status === "close"
+      ).length;
+
+      return {
+        ...report.toObject(),
+        mrStatus: { totalCalls, completedCalls },
+      };
+    });
+
+    res.status(200).json({ success: true, data: reportsWithStatus });
   } catch (error) {
     console.error("GetAllCallReports Error:", error);
     res
