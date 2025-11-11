@@ -60,9 +60,32 @@ export const addCallReport = async (req, res) => {
 
 export const getAllCallReports = async (req, res) => {
   try {
-    const reports = await CallReporting.find()
-      .populate("doctorList.doctor", "name")
-      .populate("mrName", "name");
+    const { mrName } = req.query; // Get MR name or ID from query
+
+    let filter: any = {};
+
+    if (mrName) {
+      // Check if mrName is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(mrName)) {
+        filter.mrName = mrName;
+      } else {
+        // If not ObjectId, find MR by name
+        const mr = await Admin.findOne({
+          name: mrName,
+          position: "MedicalRep(MR)",
+        });
+        if (!mr) {
+          return res
+            .status(404)
+            .json({ success: false, message: "MR not found" });
+        }
+        filter.mrName = mr._id;
+      }
+    }
+
+    const reports = await CallReporting.find(filter)
+      .populate("doctorList.doctor", "name") // Populate doctors with name only
+      .populate("mrName"); // Populate full MR details
 
     res.status(200).json({ success: true, data: reports });
   } catch (error) {
@@ -70,37 +93,6 @@ export const getAllCallReports = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: error.message || "Server Error" });
-  }
-};
-
-// ✅ Get single call report by ID
-export const getCallReportById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const report = await CallReporting.findById(id).populate("doctorList");
-    if (!report)
-      return res
-        .status(404)
-        .json({ success: false, message: "Call report not found" });
-
-    res.status(200).json({ success: true, data: report });
-  } catch (error) {
-    console.error("Error fetching call report:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ✅ Get call reports for a specific MR
-export const getCallReportsForMR = async (req, res) => {
-  try {
-    const { mrName } = req.params;
-
-    const reports = await CallReporting.find({ mrName }).populate("doctorList");
-    res.status(200).json({ success: true, data: reports });
-  } catch (error) {
-    console.error("Error fetching reports for MR:", error);
-    res.status(500).json({ success: false, message: error.message });
   }
 };
 

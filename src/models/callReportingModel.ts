@@ -2,7 +2,6 @@
 import mongoose, { Document, Types, Schema } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
-// --- Subdocument interface ---
 export interface IDoctorSubDoc extends Document {
   doctor: Types.ObjectId;
   callId: string;
@@ -53,7 +52,7 @@ const doctorSubSchema = new Schema<IDoctorSubDoc>(
     callId: {
       type: String,
       default: () => `CALL-${uuidv4()}`,
-      required: true, // Add required constraint
+      required: true,
     },
     status: {
       type: String,
