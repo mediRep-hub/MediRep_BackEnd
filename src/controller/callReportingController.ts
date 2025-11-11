@@ -1,37 +1,75 @@
-import CallReporting from "../models/callReportingModel.js";
-import Doctor from "../models/doctorModel.js";
+import CallReporting from "../models/callReportingModel";
+import Doctor from "../models/doctorModel";
+import Admin from "../models/admin";
+import mongoose from "mongoose";
+
+import { v4 as uuidv4 } from "uuid";
 
 // ✅ Add / Create call report
 export const addCallReport = async (req, res) => {
   try {
-    const { doctorList, ...rest } = req.body;
+    const { mrName, doctorList, ...rest } = req.body;
 
-    // Validate doctorList and convert to ObjectId
-    let doctors = [];
-    if (doctorList && doctorList.length > 0) {
-      doctors = await Doctor.find({ _id: { $in: doctorList } });
-    }
+    // Validate MR
+    const mrs = mongoose.Types.ObjectId.isValid(mrName)
+      ? await Admin.find({ _id: mrName, position: "MedicalRep(MR)" })
+      : await Admin.find({ name: mrName, position: "MedicalRep(MR)" });
 
-    const newReport = await CallReporting.create({
+    if (!mrs.length)
+      return res.status(404).json({ success: false, message: "MR not found" });
+
+    const mr = mrs[0];
+
+    // Validate doctors
+    const validDoctorIds = doctorList.filter((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
+
+    if (!validDoctorIds.length)
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid doctor IDs" });
+
+    const doctors = await Doctor.find({ _id: { $in: validDoctorIds } });
+    if (!doctors.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "No doctors found" });
+
+    // Map doctorList (callId auto-generated in schema)
+    const formattedDoctorList = doctors.map((doc) => ({
+      doctor: doc._id,
+      status: "pending", // optional
+    }));
+
+    const report = new CallReporting({
+      mrName: mr._id,
+      doctorList: formattedDoctorList,
       ...rest,
-      doctorList: doctors.map((d) => d._id),
     });
 
-    res.status(201).json({ success: true, data: newReport });
+    await report.save();
+    return res.status(201).json({ success: true, data: report });
   } catch (error) {
-    console.error("Error creating call report:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("AddCallReport Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || "Server Error" });
   }
 };
 
-// ✅ Get all call reports
 export const getAllCallReports = async (req, res) => {
   try {
-    const reports = await CallReporting.find().populate("doctorList");
+    const reports = await CallReporting.find()
+      .populate("doctorList.doctor", "name")
+      .populate("mrName", "name");
+
     res.status(200).json({ success: true, data: reports });
   } catch (error) {
-    console.error("Error fetching call reports:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("GetAllCallReports Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: error.message || "Server Error" });
   }
 };
 
