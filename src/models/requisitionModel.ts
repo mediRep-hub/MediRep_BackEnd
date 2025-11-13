@@ -46,7 +46,7 @@ const RequisitionSchema: Schema<IRequisition> = new Schema(
     },
     doctorName: { type: String, required: true },
     status: { type: String, default: "Pending" },
-    attachedDoc: { type: String },
+    attachedDoc: { type: String, required: true },
     details: { type: String, required: true },
     product: { type: [ProductSchema], required: true },
     startingDate: { type: Date, required: true },
