@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IProduct {
   name: string;
   quantity: number;
-  duration: string;
+  duration: string; // assuming this is like "3 days", "2 weeks" etc.
   amount: number;
 }
 
@@ -20,6 +20,9 @@ export interface IRequisition extends Document {
   paymentType: string;
   accepted: boolean;
   remarks?: string;
+  totalQuantity: number;
+  totalDuration: string;
+  totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,8 +57,42 @@ const RequisitionSchema: Schema<IRequisition> = new Schema(
     paymentType: { type: String, required: true },
     accepted: { type: Boolean, default: false },
     remarks: { type: String },
+
+    // 👇 added computed fields
+    totalQuantity: { type: Number, default: 0 },
+    totalDuration: { type: String, default: "0" },
+    totalAmount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+// 🧮 Pre-save hook to calculate totals automatically
+RequisitionSchema.pre("save", function (next) {
+  if (this.product && this.product.length > 0) {
+    // total quantity
+    this.totalQuantity = this.product.reduce(
+      (sum, item) => sum + (item.quantity || 0),
+      0
+    );
+
+    // total amount
+    this.totalAmount = this.product.reduce(
+      (sum, item) => sum + (item.amount || 0),
+      0
+    );
+
+    // total duration — since duration is string, we’ll concatenate
+    this.totalDuration = this.product
+      .map((p) => p.duration)
+      .filter(Boolean)
+      .join(", ");
+  } else {
+    this.totalQuantity = 0;
+    this.totalAmount = 0;
+    this.totalDuration = "0";
+  }
+
+  next();
+});
 
 export default mongoose.model<IRequisition>("Requisition", RequisitionSchema);

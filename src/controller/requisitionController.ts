@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Requisition, { IRequisition } from "../models/requisitionModel";
+import Requisition from "../models/requisitionModel";
 import Doctor from "../models/doctorModel";
 
 // Generate unique reqId
@@ -18,19 +18,35 @@ const generateReqId = async () => {
   return reqId;
 };
 
-// Add a new requisition
+// Helper: calculate totals
+const calculateTotals = (products: any[] = []) => {
+  const totalQuantity = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+
+  const totalAmount = products.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+  const totalDuration = products
+    .map((p) => p.duration)
+    .filter(Boolean)
+    .join(", ");
+
+  return { totalQuantity, totalAmount, totalDuration };
+};
+
+// 🟢 Add a new requisition
 export const addRequisition = async (req: Request, res: Response) => {
   try {
     const reqId = await generateReqId();
 
-    // Calculate total amount from all products
-    const totalAmount =
-      req.body.product?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0;
+    const { totalQuantity, totalAmount, totalDuration } = calculateTotals(
+      req.body.product
+    );
 
     const newReq = new Requisition({
       ...req.body,
       reqId,
-      amount: totalAmount,
+      totalQuantity,
+      totalAmount,
+      totalDuration,
     });
 
     const savedReq = await newReq.save();
@@ -47,7 +63,7 @@ export const addRequisition = async (req: Request, res: Response) => {
   }
 };
 
-// Get all requisitions
+// 🟢 Get all requisitions
 export const getAllRequisitions = async (req: Request, res: Response) => {
   try {
     const requisitions = await Requisition.find().populate(
@@ -61,7 +77,7 @@ export const getAllRequisitions = async (req: Request, res: Response) => {
   }
 };
 
-// Get single requisition
+// 🟢 Get single requisition
 export const getSingleRequisition = async (req: Request, res: Response) => {
   try {
     const requisition = await Requisition.findById(req.params.id).populate(
@@ -77,24 +93,26 @@ export const getSingleRequisition = async (req: Request, res: Response) => {
   }
 };
 
-// Update requisition
+// 🟢 Update requisition
 export const updateRequisition = async (req: Request, res: Response) => {
   try {
     const allowedFields = ["status", "paymentType", "remarks", "product"];
-
     const updates: any = {};
+
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
     });
 
-    // Recalculate total amount if products are updated
+    // If products are updated, recalc totals
     if (updates.product && Array.isArray(updates.product)) {
-      updates.amount = updates.product.reduce(
-        (sum: number, p: any) => sum + p.amount,
-        0
+      const { totalQuantity, totalAmount, totalDuration } = calculateTotals(
+        updates.product
       );
+      updates.totalQuantity = totalQuantity;
+      updates.totalAmount = totalAmount;
+      updates.totalDuration = totalDuration;
     }
 
     const updatedReq = await Requisition.findByIdAndUpdate(
@@ -117,7 +135,7 @@ export const updateRequisition = async (req: Request, res: Response) => {
   }
 };
 
-// Delete requisition
+// 🟢 Delete requisition
 export const deleteRequisition = async (req: Request, res: Response) => {
   try {
     const deletedReq = await Requisition.findByIdAndDelete(req.params.id);
@@ -133,7 +151,7 @@ export const deleteRequisition = async (req: Request, res: Response) => {
   }
 };
 
-// Update accepted status
+// 🟢 Update accepted status
 export const updateAccepted = async (req: Request, res: Response) => {
   const { id } = req.params;
 
