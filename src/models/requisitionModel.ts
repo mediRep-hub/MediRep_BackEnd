@@ -23,6 +23,7 @@ export interface IRequisition extends Document {
   totalQuantity: number;
   totalDuration: string;
   totalAmount: number;
+  requisitionType: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,9 +57,8 @@ const RequisitionSchema: Schema<IRequisition> = new Schema(
     startingDate: { type: Date, required: true },
     paymentType: { type: String, required: true },
     accepted: { type: Boolean, default: false },
+    requisitionType: { type: String, required: true },
     remarks: { type: String },
-
-    // 👇 added computed fields
     totalQuantity: { type: Number, default: 0 },
     totalDuration: { type: String, default: "0" },
     totalAmount: { type: Number, default: 0 },
