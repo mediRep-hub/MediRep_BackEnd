@@ -8,7 +8,7 @@ export interface IRequisition extends Document {
   status: string;
   attachedDoc?: string;
   details: string;
-  product: string;
+  product: string[];
   startingDate: Date;
   quantity: number;
   duration: string;
@@ -38,7 +38,7 @@ const RequisitionSchema: Schema<IRequisition> = new Schema(
     status: { type: String, default: "Pending" },
     attachedDoc: { type: String },
     details: { type: String, required: true },
-    product: { type: String, required: true },
+    product: { type: [String], required: true },
     startingDate: { type: Date, required: true },
     quantity: { type: Number, required: true },
     duration: { type: String, required: true },
