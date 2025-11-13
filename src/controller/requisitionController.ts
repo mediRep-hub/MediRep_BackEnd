@@ -21,15 +21,7 @@ const generateReqId = async () => {
 // Helper: calculate totals
 const calculateTotals = (products: any[] = []) => {
   const totalQuantity = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
-
-  const totalAmount = products.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-  const totalDuration = products
-    .map((p) => p.duration)
-    .filter(Boolean)
-    .join(", ");
-
-  return { totalQuantity, totalAmount, totalDuration };
+  return { totalQuantity };
 };
 
 // 🟢 Add a new requisition
@@ -37,16 +29,19 @@ export const addRequisition = async (req: Request, res: Response) => {
   try {
     const reqId = await generateReqId();
 
-    const { totalQuantity, totalAmount, totalDuration } = calculateTotals(
-      req.body.product
-    );
+    // Validate amount if type is Cash
+    if (req.body.requisitionType === "Cash" && !req.body.amount) {
+      return res
+        .status(400)
+        .json({ error: "Amount is required for Cash type" });
+    }
+
+    const { totalQuantity } = calculateTotals(req.body.product);
 
     const newReq = new Requisition({
       ...req.body,
       reqId,
       totalQuantity,
-      totalAmount,
-      totalDuration,
     });
 
     const savedReq = await newReq.save();
@@ -96,7 +91,14 @@ export const getSingleRequisition = async (req: Request, res: Response) => {
 // 🟢 Update requisition
 export const updateRequisition = async (req: Request, res: Response) => {
   try {
-    const allowedFields = ["status", "paymentType", "remarks", "product"];
+    const allowedFields = [
+      "status",
+      "paymentType",
+      "remarks",
+      "product",
+      "amount",
+      "requisitionType",
+    ];
     const updates: any = {};
 
     allowedFields.forEach((field) => {
@@ -105,14 +107,17 @@ export const updateRequisition = async (req: Request, res: Response) => {
       }
     });
 
-    // If products are updated, recalc totals
+    // Validate amount if type is Cash
+    if (updates.requisitionType === "Cash" && !updates.amount) {
+      return res
+        .status(400)
+        .json({ error: "Amount is required for Cash type" });
+    }
+
+    // Recalculate total quantity if product updated
     if (updates.product && Array.isArray(updates.product)) {
-      const { totalQuantity, totalAmount, totalDuration } = calculateTotals(
-        updates.product
-      );
+      const { totalQuantity } = calculateTotals(updates.product);
       updates.totalQuantity = totalQuantity;
-      updates.totalAmount = totalAmount;
-      updates.totalDuration = totalDuration;
     }
 
     const updatedReq = await Requisition.findByIdAndUpdate(
