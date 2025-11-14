@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Doctor from "../models/doctorModel";
 import { Readable } from "stream";
 import csv from "csv-parser";
+import axios from "axios";
 
 const generateDocId = async (): Promise<string> => {
   let unique = false;
@@ -20,7 +21,38 @@ const generateDocId = async (): Promise<string> => {
 export const addDoctor = async (req: Request, res: Response) => {
   try {
     const docId = await generateDocId();
-    const doctor = new Doctor({ ...req.body, docId });
+
+    // ---------------------------
+    // 1️⃣ Get lat/lng from address
+    // ---------------------------
+    const apiKey = "AIzaSyBrNjsUsrJ0Mmjhe-WUKDKVaIsMkZ8iQ4A";
+
+    const geoURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+      req.body.address
+    )}&key=${apiKey}`;
+
+    const geoRes = await axios.get(geoURL);
+
+    let lat = 0;
+    let lng = 0;
+
+    if (geoRes.data.status === "OK" && geoRes.data.results.length > 0) {
+      lat = geoRes.data.results[0].geometry.location.lat;
+      lng = geoRes.data.results[0].geometry.location.lng;
+    }
+
+    // ---------------------------
+    // 2️⃣ Save doctor with location
+    // ---------------------------
+    const doctor = new Doctor({
+      ...req.body,
+      docId,
+      location: {
+        lat,
+        lng,
+      },
+    });
+
     await doctor.save();
 
     res.status(201).json({
@@ -116,6 +148,63 @@ export const deleteDoctor = async (req: Request, res: Response) => {
   }
 };
 
+// export const uploadCSVDoctor = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "No file uploaded." });
+//     }
+
+//     const rows = [];
+//     const stream = Readable.from(req.file.buffer);
+
+//     await new Promise((resolve, reject) => {
+//       stream
+//         .pipe(csv())
+//         .on("data", (row) => rows.push(row))
+//         .on("end", resolve)
+//         .on("error", reject);
+//     });
+
+//     if (!rows.length) {
+//       return res.status(400).json({ success: false, message: "CSV is empty" });
+//     }
+
+//     // Generate unique docIds
+//     const doctorsWithIds = await Promise.all(
+//       rows.map(async (r) => ({
+//         docId: `DOC${Math.floor(1000 + Math.random() * 9000)}`,
+//         name: r.name || r.Name || "",
+//         specialty: r.specialty || r.Specialty || "",
+//         email: r.email || r.Email || "",
+//         phone: r.phone || r.Phone || "",
+//         address: r.address || r.Address || "",
+//         startTime: r.startTime || r.StartTime || "",
+//         endTime: r.endTime || r.EndTime || "",
+//         region: r.region || r.Region || "",
+//         area: r.area || r.Area || "",
+//         affiliation: r.affiliation || r.Affiliation || "",
+//         image: r.image || r.Image || "",
+//       }))
+//     );
+
+//     const inserted = await Doctor.insertMany(doctorsWithIds, {
+//       ordered: false,
+//     });
+//     return res.status(201).json({
+//       success: true,
+//       message: `✅ ${inserted.length} of ${doctorsWithIds.length} doctors uploaded successfully!`,
+//     });
+//   } catch (err) {
+//     console.error("Upload CSV Error:", err);
+//     return res.status(500).json({
+//       success: false,
+//       message: err.message || "Upload failed",
+//     });
+//   }
+// };
+
 export const uploadCSVDoctor = async (req, res) => {
   try {
     if (!req.file) {
@@ -127,6 +216,7 @@ export const uploadCSVDoctor = async (req, res) => {
     const rows = [];
     const stream = Readable.from(req.file.buffer);
 
+    // Read CSV
     await new Promise((resolve, reject) => {
       stream
         .pipe(csv())
@@ -136,33 +226,65 @@ export const uploadCSVDoctor = async (req, res) => {
     });
 
     if (!rows.length) {
-      return res.status(400).json({ success: false, message: "CSV is empty" });
+      return res.status(400).json({
+        success: false,
+        message: "CSV is empty",
+      });
     }
 
-    // Generate unique docIds
-    const doctorsWithIds = await Promise.all(
-      rows.map(async (r) => ({
-        docId: `DOC${Math.floor(1000 + Math.random() * 9000)}`,
-        name: r.name || r.Name || "",
-        specialty: r.specialty || r.Specialty || "",
-        email: r.email || r.Email || "",
-        phone: r.phone || r.Phone || "",
-        address: r.address || r.Address || "",
-        startTime: r.startTime || r.StartTime || "",
-        endTime: r.endTime || r.EndTime || "",
-        region: r.region || r.Region || "",
-        area: r.area || r.Area || "",
-        affiliation: r.affiliation || r.Affiliation || "",
-        image: r.image || r.Image || "",
-      }))
+    const apiKey = "AIzaSyBrNjsUsrJ0Mmjhe-WUKDKVaIsMkZ8iQ4A";
+
+    // Convert address → lat/lng
+    const doctorsWithData = await Promise.all(
+      rows.map(async (r) => {
+        const address =
+          r.address || r.Address || r.Location || r.location || "";
+
+        let lat = 0;
+        let lng = 0;
+
+        if (address) {
+          try {
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+              address
+            )}&key=${apiKey}`;
+
+            const response = await axios.get(url);
+
+            if (response.data.results && response.data.results.length > 0) {
+              lat = response.data.results[0].geometry.location.lat;
+              lng = response.data.results[0].geometry.location.lng;
+            }
+          } catch (err) {
+            console.error("Geocoding error:", err.message);
+          }
+        }
+
+        return {
+          docId: `DOC${Math.floor(1000 + Math.random() * 9000)}`,
+          name: r.name || r.Name || "",
+          specialty: r.specialty || r.Specialty || "",
+          email: r.email || r.Email || "",
+          phone: r.phone || r.Phone || "",
+          address,
+          startTime: r.startTime || r.StartTime || "",
+          endTime: r.endTime || r.EndTime || "",
+          region: r.region || r.Region || "",
+          area: r.area || r.Area || "",
+          affiliation: r.affiliation || r.Affiliation || "",
+          image: r.image || r.Image || "",
+          location: { lat, lng },
+        };
+      })
     );
 
-    const inserted = await Doctor.insertMany(doctorsWithIds, {
+    const inserted = await Doctor.insertMany(doctorsWithData, {
       ordered: false,
     });
+
     return res.status(201).json({
       success: true,
-      message: `✅ ${inserted.length} of ${doctorsWithIds.length} doctors uploaded successfully!`,
+      message: `✅ ${inserted.length} of ${doctorsWithData.length} doctors uploaded successfully!`,
     });
   } catch (err) {
     console.error("Upload CSV Error:", err);
