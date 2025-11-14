@@ -31,8 +31,6 @@ const DoctorSchema: Schema = new Schema(
     area: { type: String, required: true },
     affiliation: { type: String, required: true },
     image: { type: String, required: true },
-
-    // ⭐ Auto geo-coded lat/lng
     location: {
       lat: Number,
       lng: Number,
@@ -41,7 +39,6 @@ const DoctorSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// ⭐ Auto-generate docId + auto geocode address
 DoctorSchema.pre<IDoctor>("save", async function (next) {
   const apiKey = "AIzaSyBrNjsUsrJ0Mmjhe-WUKDKVaIsMkZ8iQ4A";
 

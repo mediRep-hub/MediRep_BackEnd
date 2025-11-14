@@ -84,10 +84,9 @@ export const getAllCallReports = async (req, res) => {
     }
 
     const reports = await CallReporting.find(filter)
-      .populate("doctorList.doctor") // full doctor data
-      .populate("mrName"); // full MR data
+      .populate("doctorList.doctor")
+      .populate("mrName");
 
-    // Add mrStatus for each report
     const reportsWithStatus = reports.map((report) => {
       const totalCalls = report.doctorList.length;
       const completedCalls = report.doctorList.filter(
@@ -109,39 +108,6 @@ export const getAllCallReports = async (req, res) => {
   }
 };
 
-// ✅ Update call report by ID
-export const updateCallReport = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { doctorList, ...rest } = req.body;
-
-    // Validate doctorList
-    let doctors = [];
-    if (doctorList && doctorList.length > 0) {
-      doctors = await Doctor.find({ _id: { $in: doctorList } });
-    }
-
-    const updatedReport = await CallReporting.findByIdAndUpdate(
-      id,
-      {
-        ...rest,
-        ...(doctors.length > 0 && { doctorList: doctors.map((d) => d._id) }),
-      },
-      { new: true, runValidators: true }
-    ).populate("doctorList");
-
-    if (!updatedReport)
-      return res
-        .status(404)
-        .json({ success: false, message: "Call report not found" });
-
-    res.status(200).json({ success: true, data: updatedReport });
-  } catch (error) {
-    console.error("Error updating call report:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // ✅ Delete call report by ID
 export const deleteCallReport = async (req, res) => {
   try {
@@ -159,6 +125,119 @@ export const deleteCallReport = async (req, res) => {
       .json({ success: true, message: "Call report deleted successfully" });
   } catch (error) {
     console.error("Error deleting call report:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+// ✅ Update call report by ID
+
+export const updateCallReport = async (req, res) => {
+  try {
+    const { id } = req.params; // CallReporting _id
+    const { doctorList: incomingDoctors } = req.body; // array of doctors to add/update
+
+    if (
+      !incomingDoctors ||
+      !Array.isArray(incomingDoctors) ||
+      incomingDoctors.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No doctor data provided." });
+    }
+
+    // Find the main call report
+    const callReport = await CallReporting.findById(id);
+    if (!callReport) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Call report not found" });
+    }
+
+    // Convert existing doctor IDs to strings for comparison
+    const existingDoctorIds = callReport.doctorList.map((d) =>
+      d.doctor.toString()
+    );
+
+    incomingDoctors.forEach((doc) => {
+      const doctorId = doc.doctor; // should be ObjectId or string
+      const index = existingDoctorIds.indexOf(doctorId);
+
+      if (index > -1) {
+        // Doctor exists -> update fields
+        Object.assign(callReport.doctorList[index], doc);
+      } else {
+        // Doctor does not exist -> add as new subdocument
+        callReport.doctorList.push(
+          CallReporting.prepareDoctorList([doctorId])[0]
+        );
+      }
+    });
+
+    // Save the updated call report
+    await callReport.save();
+
+    // Populate doctor data for response
+    await callReport.populate("doctorList.doctor");
+
+    res.status(200).json({ success: true, data: callReport });
+  } catch (error) {
+    console.error("Error updating call report doctors:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ✅ Update the order of doctors in a call report
+// backend/controllers/callReporting.ts
+
+export const reorderDoctorList = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { orderedDoctorIds } = req.body;
+
+    // Validate input
+    if (
+      !orderedDoctorIds ||
+      !Array.isArray(orderedDoctorIds) ||
+      orderedDoctorIds.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No doctor IDs provided." });
+    }
+
+    const callReport = await CallReporting.findById(id);
+    if (!callReport) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Call report not found." });
+    }
+
+    const doctorMap = new Map(
+      callReport.doctorList.map((d) => [d.doctor.toString(), d])
+    );
+
+    const reorderedList = orderedDoctorIds
+      .map((docId) => doctorMap.get(docId))
+      .filter(Boolean);
+
+    if (reorderedList.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid doctor IDs. No reorder performed.",
+      });
+    }
+    callReport.doctorList.splice(
+      0,
+      callReport.doctorList.length,
+      ...reorderedList
+    );
+
+    await callReport.save();
+    await callReport.populate("doctorList.doctor");
+
+    res.status(200).json({ success: true, data: callReport });
+  } catch (error) {
+    console.error("Error reordering doctor list:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
