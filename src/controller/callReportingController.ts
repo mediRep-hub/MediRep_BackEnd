@@ -2,8 +2,14 @@ import CallReporting from "../models/callReportingModel";
 import Doctor from "../models/doctorModel";
 import Admin from "../models/admin";
 import mongoose from "mongoose";
+import { Request, Response } from "express";
 
-import { v4 as uuidv4 } from "uuid";
+interface CheckLocationBody {
+  callReportId: string;
+  doctorId: string;
+  lat: number;
+  lng: number;
+}
 
 // ✅ Add / Create call report
 export const addCallReport = async (req, res) => {
@@ -187,7 +193,6 @@ export const updateCallReport = async (req, res) => {
 };
 
 // ✅ Update the order of doctors in a call report
-// backend/controllers/callReporting.ts
 
 export const reorderDoctorList = async (req, res) => {
   try {
@@ -238,6 +243,85 @@ export const reorderDoctorList = async (req, res) => {
     res.status(200).json({ success: true, data: callReport });
   } catch (error) {
     console.error("Error reordering doctor list:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+function getDistanceFromLatLonInMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export const checkDoctorLocation = async (
+  req: Request<{}, {}, CheckLocationBody>,
+  res: Response
+) => {
+  try {
+    const { callReportId, doctorId, lat, lng } = req.body;
+
+    if (!callReportId || !doctorId || lat === undefined || lng === undefined) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
+    }
+
+    // Find the call report
+    const callReport = await CallReporting.findById(callReportId).populate(
+      "doctorList.doctor"
+    );
+
+    if (!callReport) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Call report not found" });
+    }
+
+    // Find the doctor inside the call report
+    const doctorEntry = callReport.doctorList.find(
+      (d) => d.doctor._id.toString() === doctorId
+    );
+
+    if (!doctorEntry) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor not found in call report" });
+    }
+
+    const doctorLat = (doctorEntry.doctor as any).location.lat;
+    const doctorLng = (doctorEntry.doctor as any).location.lng;
+
+    const distance = getDistanceFromLatLonInMeters(
+      lat,
+      lng,
+      doctorLat,
+      doctorLng
+    );
+
+    if (distance <= 500) {
+      return res
+        .status(200)
+        .json({ success: true, message: "Location is match", distance });
+    } else {
+      return res
+        .status(200)
+        .json({ success: false, message: "Location is not match", distance });
+    }
+  } catch (error: any) {
+    console.error("Error checking location:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
