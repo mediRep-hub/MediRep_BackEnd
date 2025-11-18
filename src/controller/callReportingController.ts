@@ -64,18 +64,21 @@ export const addCallReport = async (req, res) => {
   }
 };
 
-export const getAllCallReports = async (req, res) => {
+// 🟢 Get all call reports with pagination
+export const getAllCallReports = async (req: Request, res: Response) => {
   try {
-    const { mrName } = req.query; // Get MR name or ID from query
+    const { mrName, page = "1", limit = "10" } = req.query;
+
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const pageSize = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * pageSize;
 
     let filter: any = {};
 
     if (mrName) {
-      // Check if mrName is a valid ObjectId
-      if (mongoose.Types.ObjectId.isValid(mrName)) {
+      if (mongoose.Types.ObjectId.isValid(mrName as string)) {
         filter.mrName = mrName;
       } else {
-        // If not ObjectId, find MR by name
         const mr = await Admin.findOne({
           name: mrName,
           position: "MedicalRep(MR)",
@@ -89,9 +92,14 @@ export const getAllCallReports = async (req, res) => {
       }
     }
 
+    const totalReports = await CallReporting.countDocuments(filter);
+
     const reports = await CallReporting.find(filter)
       .populate("doctorList.doctor")
-      .populate("mrName");
+      .populate("mrName")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize);
 
     const reportsWithStatus = reports.map((report) => {
       const totalCalls = report.doctorList.length;
@@ -105,7 +113,13 @@ export const getAllCallReports = async (req, res) => {
       };
     });
 
-    res.status(200).json({ success: true, data: reportsWithStatus });
+    res.status(200).json({
+      success: true,
+      page: pageNumber,
+      totalPages: Math.ceil(totalReports / pageSize),
+      totalItems: totalReports,
+      data: reportsWithStatus,
+    });
   } catch (error) {
     console.error("GetAllCallReports Error:", error);
     res

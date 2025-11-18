@@ -53,8 +53,31 @@ export const addOrder = async (req: Request, res: Response) => {
 // Get all orders
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.status(200).json(orders);
+    // Read query params
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    // Count total orders
+    const totalItems = await Order.countDocuments();
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Fetch orders with pagination
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      data: orders,
+      pagination: {
+        currentPage: page,
+        itemsPerPage: limit,
+        totalItems,
+        totalPages,
+      },
+    });
   } catch (error: any) {
     res
       .status(500)

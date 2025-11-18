@@ -59,13 +59,31 @@ export const addRequisition = async (req: Request, res: Response) => {
 };
 
 // 🟢 Get all requisitions
+// 🟢 Get all requisitions with pagination
 export const getAllRequisitions = async (req: Request, res: Response) => {
   try {
-    const requisitions = await Requisition.find().populate(
-      "doctor",
-      "name image specialty"
-    );
-    res.status(200).json({ success: true, requisitions });
+    // Read page and limit from query params, set defaults
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination info
+    const total = await Requisition.countDocuments();
+
+    // Fetch requisitions with pagination
+    const requisitions = await Requisition.find()
+      .populate("doctor", "name image specialty")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      page,
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      requisitions,
+    });
   } catch (err: any) {
     console.error("Get All Requisitions Error:", err);
     res.status(500).json({ error: err.message });

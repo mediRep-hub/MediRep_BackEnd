@@ -13,35 +13,44 @@ export const addProduct = async (req: Request, res: Response) => {
 };
 
 // Get all products
+// Get all products with pagination
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
-    const { sku, productName } = req.query;
-    const filter: any = {};
+    const { sku, productName, page = "1", limit = "10" } = req.query;
 
+    const filter: any = {};
     if (sku) {
       filter.sku = { $regex: new RegExp(sku as string, "i") };
     }
-
     if (productName) {
       filter.productName = { $regex: new RegExp(productName as string, "i") };
     }
 
-    // ✅ Fetch filtered products
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const itemsPerPage = parseInt(limit as string, 10) || 10;
+
+    // ✅ Total count for pagination
+    const totalItems = await Product.countDocuments(filter);
+
+    // ✅ Fetch paginated products
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((pageNumber - 1) * itemsPerPage)
+      .limit(itemsPerPage);
 
     // ✅ Aggregate categories with count and total targetAchievement
     const categoryStats = await Product.aggregate([
       {
         $group: {
-          _id: "$category", // Group by category
+          _id: "$category",
           productCount: { $sum: 1 },
           totalTargetAchievement: { $sum: "$targetAchievement" },
         },
       },
       {
         $project: {
-          _id: 0, // remove default _id
-          name: "$_id", // rename _id to name
+          _id: 0,
+          name: "$_id",
           productCount: 1,
           totalTargetAchievement: 1,
         },
@@ -49,11 +58,16 @@ export const getAllProducts = async (req: Request, res: Response) => {
       { $sort: { name: 1 } },
     ]);
 
-    // ✅ Send combined response
     res.status(200).json({
       success: true,
       data: products,
       categorySummary: categoryStats,
+      pagination: {
+        currentPage: pageNumber,
+        itemsPerPage,
+        totalItems,
+        totalPages: Math.ceil(totalItems / itemsPerPage),
+      },
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

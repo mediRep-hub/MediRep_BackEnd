@@ -69,11 +69,25 @@ export const addDoctor = async (req: Request, res: Response) => {
 };
 
 // ✅ Get all doctors
+// ✅ Get all doctors with pagination
 export const getAllDoctors = async (req: Request, res: Response) => {
   try {
-    const doctors = await Doctor.find().sort({ createdAt: -1 });
+    // Get page and limit from query params, defaults: page=1, limit=6
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 6;
+    const skip = (page - 1) * limit;
+
+    const totalDoctors = await Doctor.countDocuments();
+    const doctors = await Doctor.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     res.status(200).json({
       success: true,
+      total: totalDoctors,
+      page,
+      pages: Math.ceil(totalDoctors / limit),
       count: doctors.length,
       data: doctors,
     });
