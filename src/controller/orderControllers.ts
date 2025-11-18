@@ -53,18 +53,22 @@ export const addOrder = async (req: Request, res: Response) => {
 // Get all orders
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
-    // Read query params
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const mrName = req.query.mrName as string; // optional
 
-    // Count total orders
-    const totalItems = await Order.countDocuments();
+    // Build filter based on mrName
+    const filter: any = {};
+    if (mrName) {
+      filter.mrName = mrName;
+    }
 
-    // Calculate total pages
+    // Count total orders based on filter
+    const totalItems = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Fetch orders with pagination and populate doctor
-    const orders = await Order.find()
+    // Fetch orders with pagination and optional filter
+    const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -99,7 +103,6 @@ export const getOrderById = async (req: Request, res: Response) => {
   }
 };
 
-// Update order
 export const updateOrder = async (req: Request, res: Response) => {
   try {
     const { medicines, ...rest } = req.body;
