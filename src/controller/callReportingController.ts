@@ -67,14 +67,23 @@ export const addCallReport = async (req, res) => {
 // 🟢 Get all call reports with pagination
 export const getAllCallReports = async (req: Request, res: Response) => {
   try {
-    const { mrName, page = "1", limit = "10" } = req.query;
+    const {
+      mrName,
+      page = "1",
+      limit = "10",
+      doctorPage = "1",
+      doctorLimit = "5",
+    } = req.query;
 
     const pageNumber = parseInt(page as string, 10) || 1;
     const pageSize = parseInt(limit as string, 10) || 10;
+
+    const docPageNumber = parseInt(doctorPage as string, 10) || 1;
+    const docPageSize = parseInt(doctorLimit as string, 10) || 5;
+
     const skip = (pageNumber - 1) * pageSize;
 
     let filter: any = {};
-
     if (mrName) {
       if (mongoose.Types.ObjectId.isValid(mrName as string)) {
         filter.mrName = mrName;
@@ -101,15 +110,29 @@ export const getAllCallReports = async (req: Request, res: Response) => {
       .skip(skip)
       .limit(pageSize);
 
-    const reportsWithStatus = reports.map((report) => {
+    const reportsWithPaginatedDoctors = reports.map((report) => {
       const totalCalls = report.doctorList.length;
       const completedCalls = report.doctorList.filter(
         (doc) => doc.status === "close"
       ).length;
 
+      // Paginate doctorList
+      const doctorSkip = (docPageNumber - 1) * docPageSize;
+      const paginatedDoctors = report.doctorList.slice(
+        doctorSkip,
+        doctorSkip + docPageSize
+      );
+
       return {
         ...report.toObject(),
         mrStatus: { totalCalls, completedCalls },
+        doctorList: paginatedDoctors,
+        doctorPagination: {
+          page: docPageNumber,
+          totalItems: totalCalls,
+          totalPages: Math.ceil(totalCalls / docPageSize),
+          limit: docPageSize,
+        },
       };
     });
 
@@ -118,7 +141,7 @@ export const getAllCallReports = async (req: Request, res: Response) => {
       page: pageNumber,
       totalPages: Math.ceil(totalReports / pageSize),
       totalItems: totalReports,
-      data: reportsWithStatus,
+      data: reportsWithPaginatedDoctors,
     });
   } catch (error) {
     console.error("GetAllCallReports Error:", error);
