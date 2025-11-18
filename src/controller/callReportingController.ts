@@ -72,14 +72,14 @@ export const getAllCallReports = async (req: Request, res: Response) => {
       page = "1",
       limit = "10",
       doctorPage = "1",
-      doctorLimit = "5",
+      doctorLimit = "10",
     } = req.query;
 
     const pageNumber = parseInt(page as string, 10) || 1;
     const pageSize = parseInt(limit as string, 10) || 10;
 
     const docPageNumber = parseInt(doctorPage as string, 10) || 1;
-    const docPageSize = parseInt(doctorLimit as string, 10) || 5;
+    const docPageSize = parseInt(doctorLimit as string, 10) || 10;
 
     const skip = (pageNumber - 1) * pageSize;
 

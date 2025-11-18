@@ -5,12 +5,14 @@ export interface IMedicine {
   quantity: number;
   rate: number;
   amount: number;
+  medicineType: string; // new field
+  strength: string; // new field
 }
 
 export interface IOrder extends Document {
   orderId: string;
   mrName: string;
-  doctorName: string;
+  doctor: mongoose.Types.ObjectId; // reference to Doctor
   strategyName: string;
   orderType: string;
   amount: string;
@@ -30,13 +32,15 @@ const medicineSchema = new Schema<IMedicine>({
   quantity: { type: Number, required: true },
   rate: { type: Number, required: true },
   amount: { type: Number, required: true },
+  medicineType: { type: String, required: true },
+  strength: { type: String, required: true },
 });
 
 const orderSchema = new Schema<IOrder>(
   {
     orderId: { type: String, required: true, unique: true },
     mrName: { type: String, required: true },
-    doctorName: { type: String, required: true },
+    doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
     strategyName: { type: String, required: true },
     orderType: { type: String, required: true },
     amount: { type: String, required: true },

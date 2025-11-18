@@ -63,11 +63,12 @@ export const getAllOrders = async (req: Request, res: Response) => {
     // Calculate total pages
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Fetch orders with pagination
+    // Fetch orders with pagination and populate doctor
     const orders = await Order.find()
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .populate("doctor", "name specialty email phone image docId");
 
     res.status(200).json({
       data: orders,

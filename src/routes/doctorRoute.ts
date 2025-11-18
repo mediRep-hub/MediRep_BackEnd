@@ -6,6 +6,7 @@ import {
   deleteDoctor,
   getAllDoctors,
   uploadCSVDoctor,
+  getAllDoctorslist,
 } from "../controller/doctorController";
 import multer from "multer";
 
@@ -14,6 +15,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/addDoctor", addDoctor);
 router.get("/getAllDoctor", getAllDoctors);
+router.get("/getAllDoctorslist", getAllDoctorslist);
 router.get("/getSingleDoctor/:id", getDoctorById);
 router.put("/updateDoctor/:id", updateDoctor);
 router.delete("/deleteDoctor/:id", deleteDoctor);

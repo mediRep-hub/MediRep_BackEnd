@@ -69,6 +69,22 @@ export const addDoctor = async (req: Request, res: Response) => {
 };
 
 // ✅ Get all doctors
+export const getAllDoctorslist = async (req: Request, res: Response) => {
+  try {
+    const doctors = await Doctor.find().sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: doctors.length,
+      data: doctors,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch doctors",
+    });
+  }
+};
+
 // ✅ Get all doctors with pagination
 export const getAllDoctors = async (req: Request, res: Response) => {
   try {
