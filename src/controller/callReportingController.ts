@@ -69,6 +69,10 @@ export const getAllCallReports = async (req: Request, res: Response) => {
   try {
     const {
       mrName,
+      area,
+      date,
+      startDate,
+      endDate,
       page = "1",
       limit = "10",
       doctorPage = "1",
@@ -84,7 +88,11 @@ export const getAllCallReports = async (req: Request, res: Response) => {
     const skip = (pageNumber - 1) * pageSize;
 
     let filter: any = {};
-    if (mrName) {
+
+    // ---------------------------------------------
+    // 1️⃣ Filter — MR Name
+    // ---------------------------------------------
+    if (mrName && mrName !== "All") {
       if (mongoose.Types.ObjectId.isValid(mrName as string)) {
         filter.mrName = mrName;
       } else {
@@ -92,17 +100,62 @@ export const getAllCallReports = async (req: Request, res: Response) => {
           name: mrName,
           position: "MedicalRep(MR)",
         });
+
         if (!mr) {
-          return res
-            .status(404)
-            .json({ success: false, message: "MR not found" });
+          return res.status(404).json({
+            success: false,
+            message: "MR not found",
+          });
         }
+
         filter.mrName = mr._id;
       }
     }
 
+    // ---------------------------------------------
+    // 2️⃣ Filter — Area
+    // ---------------------------------------------
+    if (area && area !== "All") {
+      filter.area = area;
+    }
+
+    // ---------------------------------------------
+    // 3️⃣ Filter — Date Filters (createdAt)
+    //
+    // Supports:
+    //   - Single Date (date)
+    //   - Range (startDate + endDate)
+    // ---------------------------------------------
+
+    if (date) {
+      // Single date → whole day filter
+      const dayStart = new Date(date as string);
+      dayStart.setHours(0, 0, 0, 0);
+
+      const dayEnd = new Date(date as string);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      filter.createdAt = { $gte: dayStart, $lte: dayEnd };
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+
+      filter.createdAt = { $gte: start, $lte: end };
+    }
+
+    // ---------------------------------------------
+    // Count Total
+    // ---------------------------------------------
     const totalReports = await CallReporting.countDocuments(filter);
 
+    // ---------------------------------------------
+    // Fetch Reports
+    // ---------------------------------------------
     const reports = await CallReporting.find(filter)
       .populate("doctorList.doctor")
       .populate("mrName")
@@ -110,13 +163,15 @@ export const getAllCallReports = async (req: Request, res: Response) => {
       .skip(skip)
       .limit(pageSize);
 
+    // ---------------------------------------------
+    // Doctor Pagination
+    // ---------------------------------------------
     const reportsWithPaginatedDoctors = reports.map((report) => {
       const totalCalls = report.doctorList.length;
       const completedCalls = report.doctorList.filter(
         (doc) => doc.status === "close"
       ).length;
 
-      // Paginate doctorList
       const doctorSkip = (docPageNumber - 1) * docPageSize;
       const paginatedDoctors = report.doctorList.slice(
         doctorSkip,
@@ -136,6 +191,9 @@ export const getAllCallReports = async (req: Request, res: Response) => {
       };
     });
 
+    // ---------------------------------------------
+    // Response
+    // ---------------------------------------------
     res.status(200).json({
       success: true,
       page: pageNumber,
@@ -143,11 +201,12 @@ export const getAllCallReports = async (req: Request, res: Response) => {
       totalItems: totalReports,
       data: reportsWithPaginatedDoctors,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("GetAllCallReports Error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: error.message || "Server Error" });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server Error",
+    });
   }
 };
 
