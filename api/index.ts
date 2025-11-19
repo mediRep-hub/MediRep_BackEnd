@@ -8,6 +8,7 @@ import doctorRouter from "../src/routes/doctorRoute.js";
 import productRoutes from "../src/routes/productRoute.js";
 import callReportingRoutes from "../src/routes/callReportingRoute.js";
 import requisitionRoutes from "../src/routes/requisitionRoute.js";
+import filterRoutes from "../src/routes/filterRoute";
 import uploadFileRoutes from "../src/routes/uploadRoute.js";
 import orderRoutes from "../src/routes/orderRoutes.js";
 import ErrorHandler from "../src/middlewares/errorHandler.js";
@@ -51,6 +52,7 @@ app.use("/callreport", callReportingRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
+app.use("/filter", filterRoutes);
 
 // ✅ Global error handler
 app.use(ErrorHandler);

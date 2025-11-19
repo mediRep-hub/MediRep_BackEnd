@@ -9,6 +9,7 @@ import callReportingRoutes from "./routes/callReportingRoute";
 import requisitionRoutes from "./routes/requisitionRoute";
 import uploadFileRoutes from "./routes/uploadRoute";
 import orderRoutes from "./routes/orderRoutes";
+import filterRoutes from "./routes/filterRoute";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
 
@@ -71,6 +72,7 @@ app.use("/callreport", callReportingRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
+app.use("/filter", filterRoutes);
 
 app.use(ErrorHandler);
 

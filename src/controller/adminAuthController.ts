@@ -219,13 +219,37 @@ const adminAuthController = {
   // 📝 GET ALL LOGINS
   async getAllAdmins(req: Request, res: Response, next: NextFunction) {
     try {
-      const admins = await Admin.find({
-        email: { $ne: "SuperAdmin@gmail.com" }, // Exclude SuperAdmin
-      }).select(
-        "adminId name email phoneNumber division area region strategy position image"
-      ); // Include password & confirmPassword
+      // Parse page and limit from query params
+      const page = parseInt(req.query.page as string) || 1; // default 1
+      const limit = parseInt(req.query.limit as string) || 10; // default 10
 
-      return res.status(200).json({ admins });
+      const skip = (page - 1) * limit;
+
+      // Count total admins (excluding SuperAdmin)
+      const totalItems = await Admin.countDocuments({
+        email: { $ne: "SuperAdmin@gmail.com" },
+      });
+
+      // Fetch admins with pagination
+      const admins = await Admin.find({
+        email: { $ne: "SuperAdmin@gmail.com" },
+      })
+        .select(
+          "adminId name email phoneNumber division area region strategy position image"
+        )
+        .skip(skip)
+        .limit(limit)
+        .sort({ name: 1 }); // optional sorting
+
+      return res.status(200).json({
+        admins,
+        pagination: {
+          totalItems,
+          currentPage: page,
+          totalPages: Math.ceil(totalItems / limit),
+          itemsPerPage: limit,
+        },
+      });
     } catch (err) {
       return next(err);
     }
