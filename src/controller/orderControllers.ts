@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { Order } from "../models/orderModel";
+import Admin from "../models/admin";
+import mongoose from "mongoose";
 
 // Generate auto-incremented Order ID
 const generateOrderId = async (): Promise<string> => {
@@ -53,40 +55,87 @@ export const addOrder = async (req: Request, res: Response) => {
 // Get all orders
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const mrName = req.query.mrName as string; // optional
+    const {
+      page = "1",
+      limit = "10",
+      mrName,
+      date,
+      startDate,
+      endDate,
+    } = req.query;
 
-    // Build filter based on mrName
-    const filter: any = {};
-    if (mrName) {
-      filter.mrName = mrName;
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const pageSize = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * pageSize;
+
+    let filter: any = {};
+
+    // -----------------------------
+    // MR Name Filter
+    // -----------------------------
+    if (mrName && mrName !== "All") {
+      filter.$or = [
+        { mrName: mrName },
+        {
+          mrName: {
+            $in: (
+              await Admin.find({ name: { $regex: mrName, $options: "i" } })
+            ).map((m) => m._id),
+          },
+        },
+      ];
     }
 
-    // Count total orders based on filter
-    const totalItems = await Order.countDocuments(filter);
-    const totalPages = Math.ceil(totalItems / limit);
+    // -----------------------------
+    // Date Filter
+    // -----------------------------
+    if (date) {
+      const dayStart = new Date(date as string);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date as string);
+      dayEnd.setHours(23, 59, 59, 999);
 
-    // Fetch orders with pagination and optional filter
+      filter.createdAt = { $gte: dayStart, $lte: dayEnd };
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+
+      filter.createdAt = { $gte: start, $lte: end };
+    }
+
+    // -----------------------------
+    // Total count
+    // -----------------------------
+    const totalItems = await Order.countDocuments(filter);
+    const totalPages = Math.ceil(totalItems / pageSize);
+
+    // -----------------------------
+    // Fetch orders with pagination
+    // -----------------------------
     const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate("doctor", "name specialty email phone image docId");
+      .skip(skip)
+      .limit(pageSize)
+      .populate("doctor", "name specialty email phone image docId")
+      .populate("mrName", "name");
 
+    // -----------------------------
+    // Response
+    // -----------------------------
     res.status(200).json({
+      success: true,
+      page: pageNumber,
+      totalPages,
+      totalItems,
       data: orders,
-      pagination: {
-        currentPage: page,
-        itemsPerPage: limit,
-        totalItems,
-        totalPages,
-      },
     });
   } catch (error: any) {
-    res
-      .status(500)
-      .json({ message: "Error fetching orders", error: error.message });
+    console.error("GetAllOrders Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
