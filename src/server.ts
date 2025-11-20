@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://medi-rep-front-end.vercel.app", // ✅ no trailing slash
+  "https://medi-rep-front-end.vercel.app",
 ];
 
 app.use(

@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import Requisition from "../models/requisitionModel";
 import Doctor from "../models/doctorModel";
+import Admin from "../models/admin";
+import mongoose from "mongoose";
 
 // Generate unique reqId
 const generateReqId = async () => {
@@ -58,29 +60,82 @@ export const addRequisition = async (req: Request, res: Response) => {
   }
 };
 
-// 🟢 Get all requisitions
 // 🟢 Get all requisitions with pagination
 export const getAllRequisitions = async (req: Request, res: Response) => {
   try {
-    // Read page and limit from query params, set defaults
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+    const {
+      mrName,
+      date,
+      startDate,
+      endDate,
+      page = "1",
+      limit = "10",
+    } = req.query;
 
-    // Get total count for pagination info
-    const total = await Requisition.countDocuments();
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const pageSize = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * pageSize;
 
-    // Fetch requisitions with pagination
-    const requisitions = await Requisition.find()
+    let filter: any = {};
+
+    // -----------------------------
+    // MR Name Filter
+    // -----------------------------
+    if (mrName && mrName !== "All") {
+      // Match by Admin _id OR by name directly in requisition
+      filter.$or = [
+        { mrName: mrName }, // in case mrName is stored as string
+        {
+          mrName: {
+            $in: (
+              await Admin.find({ name: { $regex: mrName, $options: "i" } })
+            ).map((m) => m._id),
+          },
+        },
+      ];
+    }
+
+    // -----------------------------
+    // Date Filters
+    // -----------------------------
+    if (date) {
+      const dayStart = new Date(date as string);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date as string);
+      dayEnd.setHours(23, 59, 59, 999);
+      filter.createdAt = { $gte: dayStart, $lte: dayEnd };
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt = { $gte: start, $lte: end };
+    }
+
+    // -----------------------------
+    // Total count
+    // -----------------------------
+    const total = await Requisition.countDocuments(filter);
+
+    // -----------------------------
+    // Fetch filtered requisitions
+    // -----------------------------
+    const requisitions = await Requisition.find(filter)
       .populate("doctor", "name image specialty")
+      .populate("mrName", "name")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(pageSize);
 
+    // -----------------------------
+    // Response
+    // -----------------------------
     res.status(200).json({
       success: true,
-      page,
-      totalPages: Math.ceil(total / limit),
+      page: pageNumber,
+      totalPages: Math.ceil(total / pageSize),
       totalItems: total,
       requisitions,
     });
