@@ -29,22 +29,23 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const pageNumber = parseInt(page as string, 10) || 1;
     const itemsPerPage = parseInt(limit as string, 10) || 10;
 
-    // ✅ Total count for pagination
+    // Total count for pagination
     const totalItems = await Product.countDocuments(filter);
 
-    // ✅ Fetch paginated products
+    // Fetch paginated products
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * itemsPerPage)
       .limit(itemsPerPage);
 
-    // ✅ Aggregate categories with count and total targetAchievement
+    // Aggregate categories with count and total achievements/targets
     const categoryStats = await Product.aggregate([
       {
         $group: {
           _id: "$category",
           productCount: { $sum: 1 },
-          totalTargetAchievement: { $sum: "$targetAchievement" },
+          totalTarget: { $sum: "$target" },
+          totalAchievement: { $sum: "$achievement" },
         },
       },
       {
@@ -52,16 +53,64 @@ export const getAllProducts = async (req: Request, res: Response) => {
           _id: 0,
           name: "$_id",
           productCount: 1,
-          totalTargetAchievement: 1,
+          totalTarget: 1,
+          totalAchievement: 1,
+          percentage: {
+            $cond: [
+              { $eq: ["$totalTarget", 0] },
+              0,
+              {
+                $multiply: [
+                  { $divide: ["$totalAchievement", "$totalTarget"] },
+                  100,
+                ],
+              },
+            ],
+          },
         },
       },
       { $sort: { name: 1 } },
+    ]);
+
+    // Total across all products
+    const totalStats = await Product.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalTarget: { $sum: "$target" },
+          totalAchievement: { $sum: "$achievement" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalTarget: 1,
+          totalAchievement: 1,
+          percentage: {
+            $cond: [
+              { $eq: ["$totalTarget", 0] },
+              0,
+              {
+                $multiply: [
+                  { $divide: ["$totalAchievement", "$totalTarget"] },
+                  100,
+                ],
+              },
+            ],
+          },
+        },
+      },
     ]);
 
     res.status(200).json({
       success: true,
       data: products,
       categorySummary: categoryStats,
+      totalSummary: totalStats[0] || {
+        totalTarget: 0,
+        totalAchievement: 0,
+        percentage: 0,
+      },
       pagination: {
         currentPage: pageNumber,
         itemsPerPage,
