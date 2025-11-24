@@ -183,7 +183,6 @@ export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
 
 export const getMonthlyAchievement = async (req: Request, res: Response) => {
   try {
-    // Fetch orders and products
     const orders = await Order.find({}).lean();
     const products = await Product.find({}).lean();
 
@@ -192,16 +191,20 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
       productTargetMap[p.productName] = p.target;
     });
 
-    // Accumulate achievement and target per month
     const monthlyData: Record<
       string,
       { totalAchievement: number; totalTarget: number }
     > = {};
 
+    // -----------------------------
+    // 1. Fill data from orders
+    // -----------------------------
     orders.forEach((order) => {
-      const month = order.orderDate.toISOString().slice(0, 7); // "YYYY-MM"
+      const month = order.orderDate.toISOString().slice(0, 7); // YYYY-MM
+
       order.medicines.forEach((med) => {
         const target = productTargetMap[med.name] || 0;
+
         if (!monthlyData[month]) {
           monthlyData[month] = { totalAchievement: 0, totalTarget: 0 };
         }
@@ -210,33 +213,61 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
       });
     });
 
-    // Convert to sorted array
+    // ---------------------------------------------------
+    // 2. Handle missing months (auto-fill with zeros)
+    // ---------------------------------------------------
+    const allMonths = [
+      "2025-01",
+      "2025-02",
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06",
+      "2025-07",
+      "2025-08",
+      "2025-09", // ← YOU WANT THIS EMPTY MONTH
+      "2025-10",
+      "2025-11",
+      "2025-12",
+    ];
+
+    allMonths.forEach((m) => {
+      if (!monthlyData[m]) {
+        monthlyData[m] = { totalAchievement: 0, totalTarget: 0 };
+      }
+    });
+
+    // ---------------------------------------------------
+    // 3. Convert to sorted final array
+    // ---------------------------------------------------
     const months = Object.keys(monthlyData).sort();
     const result: any[] = [];
 
     let prevPercentage = 0;
+
     months.forEach((month) => {
       const { totalAchievement, totalTarget } = monthlyData[month];
+
       const percentage =
         totalTarget === 0 ? 0 : (totalAchievement / totalTarget) * 100;
 
       const change =
         prevPercentage === 0
           ? 0
-          : ((percentage - prevPercentage) / prevPercentage) * 100; // month-over-month % change
+          : ((percentage - prevPercentage) / prevPercentage) * 100;
 
       result.push({
         month,
         totalAchievement,
         totalTarget,
         percentage: +percentage.toFixed(4),
-        change: +change.toFixed(2), // positive or negative
+        change: +change.toFixed(2),
       });
 
       prevPercentage = percentage;
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: result,
     });
