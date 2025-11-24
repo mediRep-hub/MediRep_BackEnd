@@ -88,7 +88,6 @@ export const getAllDoctorslist = async (req: Request, res: Response) => {
 // ✅ Get all doctors with pagination
 export const getAllDoctors = async (req: Request, res: Response) => {
   try {
-    // Get page and limit from query params, defaults: page=1, limit=6
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 6;
     const skip = (page - 1) * limit;
@@ -177,63 +176,6 @@ export const deleteDoctor = async (req: Request, res: Response) => {
     });
   }
 };
-
-// export const uploadCSVDoctor = async (req, res) => {
-//   try {
-//     if (!req.file) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "No file uploaded." });
-//     }
-
-//     const rows = [];
-//     const stream = Readable.from(req.file.buffer);
-
-//     await new Promise((resolve, reject) => {
-//       stream
-//         .pipe(csv())
-//         .on("data", (row) => rows.push(row))
-//         .on("end", resolve)
-//         .on("error", reject);
-//     });
-
-//     if (!rows.length) {
-//       return res.status(400).json({ success: false, message: "CSV is empty" });
-//     }
-
-//     // Generate unique docIds
-//     const doctorsWithIds = await Promise.all(
-//       rows.map(async (r) => ({
-//         docId: `DOC${Math.floor(1000 + Math.random() * 9000)}`,
-//         name: r.name || r.Name || "",
-//         specialty: r.specialty || r.Specialty || "",
-//         email: r.email || r.Email || "",
-//         phone: r.phone || r.Phone || "",
-//         address: r.address || r.Address || "",
-//         startTime: r.startTime || r.StartTime || "",
-//         endTime: r.endTime || r.EndTime || "",
-//         region: r.region || r.Region || "",
-//         area: r.area || r.Area || "",
-//         affiliation: r.affiliation || r.Affiliation || "",
-//         image: r.image || r.Image || "",
-//       }))
-//     );
-
-//     const inserted = await Doctor.insertMany(doctorsWithIds, {
-//       ordered: false,
-//     });
-//     return res.status(201).json({
-//       success: true,
-//       message: `✅ ${inserted.length} of ${doctorsWithIds.length} doctors uploaded successfully!`,
-//     });
-//   } catch (err) {
-//     console.error("Upload CSV Error:", err);
-//     return res.status(500).json({
-//       success: false,
-//       message: err.message || "Upload failed",
-//     });
-//   }
-// };
 
 export const uploadCSVDoctor = async (req, res) => {
   try {
