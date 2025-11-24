@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Order } from "../models/orderModel";
 import Admin from "../models/admin";
-import mongoose from "mongoose";
+import Product from "../models/productModel";
 
 // Generate auto-incremented Order ID
 const generateOrderId = async (): Promise<string> => {
@@ -17,18 +17,21 @@ const generateOrderId = async (): Promise<string> => {
 };
 
 // Add new order
-export const addOrder = async (req: Request, res: Response) => {
+export const createOrder = async (req: Request, res: Response) => {
   try {
     const newOrderId = await generateOrderId();
     const { medicines, ...rest } = req.body;
+
+    if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
+      return res.status(400).json({ message: "Medicines are required" });
+    }
 
     // Calculate subtotal
     const subtotal = medicines.reduce(
       (acc: number, med: any) => acc + med.amount,
       0
     );
-
-    const tax = +(subtotal * 0.1).toFixed(2); // 10% tax
+    const tax = +(subtotal * 0.1).toFixed(2);
     const total = +(subtotal + tax).toFixed(2);
 
     const newOrder = new Order({
@@ -39,13 +42,22 @@ export const addOrder = async (req: Request, res: Response) => {
       tax,
       total,
     });
-
     await newOrder.save();
+    for (const med of medicines) {
+      const { name, quantity } = med;
 
-    res
-      .status(201)
-      .json({ message: "Order created successfully", data: newOrder });
+      await Product.updateOne(
+        { productName: name },
+        { $inc: { achievement: quantity } }
+      );
+    }
+
+    res.status(201).json({
+      message: "Order created successfully",
+      data: newOrder,
+    });
   } catch (error: any) {
+    console.error(error);
     res
       .status(500)
       .json({ message: "Error creating order", error: error.message });

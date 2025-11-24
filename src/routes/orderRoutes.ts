@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  addOrder,
+  createOrder,
   getAllOrders,
   getOrderById,
   updateOrder,
@@ -9,7 +9,7 @@ import {
 
 const router = express.Router();
 
-router.post("/addOrder", addOrder);
+router.post("/addOrder", createOrder);
 router.get("/getAllOrders", getAllOrders);
 router.get("/getOrder/:id", getOrderById);
 router.put("/updateOrder/:id", updateOrder);
