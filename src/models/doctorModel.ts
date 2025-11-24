@@ -1,5 +1,4 @@
 import mongoose, { Schema, Document } from "mongoose";
-import axios from "axios";
 
 export interface IDoctor extends Document {
   docId: string;
@@ -7,14 +6,15 @@ export interface IDoctor extends Document {
   specialty: string;
   email: string;
   phone: string;
-  address: string;
   startTime: string;
   endTime: string;
   region: string;
   area: string;
   affiliation: string;
   image: string;
+
   location: {
+    address: string;
     lat: number;
     lng: number;
   };
@@ -40,6 +40,7 @@ const DoctorSchema: Schema = new Schema(
     image: { type: String, required: true },
 
     location: {
+      address: { type: String, required: true },
       lat: { type: Number, required: true },
       lng: { type: Number, required: true },
     },
