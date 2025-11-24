@@ -195,10 +195,6 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
       string,
       { totalAchievement: number; totalTarget: number }
     > = {};
-
-    // -----------------------------
-    // 1. Fill data from orders
-    // -----------------------------
     orders.forEach((order) => {
       const month = order.orderDate.toISOString().slice(0, 7); // YYYY-MM
 
@@ -212,10 +208,6 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
         monthlyData[month].totalTarget += target;
       });
     });
-
-    // ---------------------------------------------------
-    // 2. Handle missing months (auto-fill with zeros)
-    // ---------------------------------------------------
     const allMonths = [
       "2025-01",
       "2025-02",
@@ -225,7 +217,7 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
       "2025-06",
       "2025-07",
       "2025-08",
-      "2025-09", // ← YOU WANT THIS EMPTY MONTH
+      "2025-09",
       "2025-10",
       "2025-11",
       "2025-12",
@@ -236,10 +228,6 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
         monthlyData[m] = { totalAchievement: 0, totalTarget: 0 };
       }
     });
-
-    // ---------------------------------------------------
-    // 3. Convert to sorted final array
-    // ---------------------------------------------------
     const months = Object.keys(monthlyData).sort();
     const result: any[] = [];
 
