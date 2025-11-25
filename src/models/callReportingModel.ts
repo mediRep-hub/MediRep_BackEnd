@@ -1,6 +1,10 @@
 import mongoose, { Document, Model, Types, Schema } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
+const generateShortId = () => {
+  return `CALL-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+};
+
 export interface IDoctorSubDoc extends Document {
   doctor: Types.ObjectId;
   callId: string;
@@ -43,7 +47,7 @@ export interface ICallReportingModel extends Model<ICallReporting> {
 // Doctor sub-schema
 const doctorSubSchema = new Schema<IDoctorSubDoc>({
   doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
-  callId: { type: String, default: () => `CALL-${uuidv4()}`, required: true },
+  callId: { type: String, default: generateShortId, required: true },
   status: {
     type: String,
     enum: ["pending", "close", "rejected"],
