@@ -36,12 +36,10 @@ export interface ICallReporting extends Document {
   updatedAt: Date;
 }
 
-// --- Model interface including static method ---
 export interface ICallReportingModel extends Model<ICallReporting> {
   prepareDoctorList(doctorIds: string[]): IDoctorSubDoc[];
 }
 const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
-// Doctor sub-schema
 const doctorSubSchema = new Schema<IDoctorSubDoc>({
   doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
   callId: { type: String, default: () => `CALL-${nanoid()}`, required: true },
@@ -71,7 +69,6 @@ const doctorSubSchema = new Schema<IDoctorSubDoc>({
   reason: { type: String, default: "" },
 });
 
-// Main schema
 const callReportingSchema = new Schema<ICallReporting>(
   {
     region: { type: String },
@@ -85,7 +82,6 @@ const callReportingSchema = new Schema<ICallReporting>(
   { timestamps: true }
 );
 
-// --- Static method ---
 callReportingSchema.statics.prepareDoctorList = function (doctorIds: string[]) {
   return doctorIds.map((id) => ({
     doctor: new Types.ObjectId(id),
@@ -110,7 +106,6 @@ callReportingSchema.statics.prepareDoctorList = function (doctorIds: string[]) {
   }));
 };
 
-// --- Create model ---
 const CallReporting = mongoose.model<ICallReporting, ICallReportingModel>(
   "CallReporting",
   callReportingSchema
