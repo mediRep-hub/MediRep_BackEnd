@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Types, Schema } from "mongoose";
+import { customAlphabet } from "nanoid";
 import { v4 as uuidv4 } from "uuid";
 
 export interface IDoctorSubDoc extends Document {
@@ -39,11 +40,11 @@ export interface ICallReporting extends Document {
 export interface ICallReportingModel extends Model<ICallReporting> {
   prepareDoctorList(doctorIds: string[]): IDoctorSubDoc[];
 }
-
+const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
 // Doctor sub-schema
 const doctorSubSchema = new Schema<IDoctorSubDoc>({
   doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
-  callId: { type: String, default: () => `CALL-${uuidv4()}`, required: true },
+  callId: { type: String, default: () => `CALL-${nanoid()}`, required: true },
   status: {
     type: String,
     enum: ["pending", "close", "rejected"],
