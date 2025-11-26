@@ -75,9 +75,9 @@ app.use("/filter", filterRoutes);
 
 app.use(ErrorHandler);
 
+// ✅ Create HTTP server instead of app.listen
 const server = createServer(app);
-// const wss = new WebSocketServer({ server });
-const wss = new WebSocketServer("https://medi-rep-back-end.vercel.app/");
+const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws: WebSocket) => {
   console.log("New WebSocket client connected");
@@ -96,8 +96,9 @@ wss.on("connection", (ws: WebSocket) => {
   });
 });
 
-server.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
+// Start server
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
 export default app;
