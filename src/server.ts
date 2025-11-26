@@ -96,7 +96,6 @@ wss.on("connection", (ws: WebSocket) => {
   });
 });
 
-// Start server
 server.listen(5000, () => {
   console.log("Server running on http://localhost:5000");
 });
