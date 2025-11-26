@@ -50,7 +50,7 @@ const doctorSubSchema = new Schema<IDoctorSubDoc>({
   callId: { type: String, default: generateShortId, required: true },
   status: {
     type: String,
-    enum: ["pending", "close", "rejected"],
+    enum: ["pending", "close", "check In"],
     default: "pending",
   },
   activeRequisition: { type: String, default: "" },

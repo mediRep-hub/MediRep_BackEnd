@@ -29,17 +29,11 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
     const pageNumber = parseInt(page as string, 10) || 1;
     const itemsPerPage = parseInt(limit as string, 10) || 10;
-
-    // Total count for pagination
     const totalItems = await Product.countDocuments(filter);
-
-    // Fetch paginated products
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * itemsPerPage)
       .limit(itemsPerPage);
-
-    // Aggregate categories with count and total achievements/targets
     const categoryStats = await Product.aggregate([
       {
         $group: {
@@ -72,8 +66,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
       },
       { $sort: { name: 1 } },
     ]);
-
-    // Total across all products
     const totalStats = await Product.aggregate([
       {
         $group: {

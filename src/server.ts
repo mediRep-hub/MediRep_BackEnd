@@ -12,6 +12,8 @@ import orderRoutes from "./routes/orderRoutes";
 import filterRoutes from "./routes/filterRoute";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
+import { createServer } from "http";
+import WebSocket, { WebSocketServer } from "ws";
 
 dotenv.config();
 
@@ -19,12 +21,12 @@ const app = express();
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// CORS
 const allowedOrigins = [
   "http://localhost:5173",
   "https://medi-rep-front-end.vercel.app",
 ];
-
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -35,17 +37,15 @@ app.use(
   })
 );
 
-// ✅ Default route
-app.get("/", (req, res) => {
+// Default route
+app.get("/", (_req, res) => {
   res.status(200).json({
-    message: "✅ Backend running successfully on Vercel!",
+    message: "✅ Backend running successfully!",
     time: new Date().toISOString(),
   });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-// ✅ MongoDB connect once
+// MongoDB connection
 let isConnected = false;
 async function ensureDBConnection() {
   if (!isConnected) {
@@ -58,13 +58,12 @@ async function ensureDBConnection() {
     }
   }
 }
-
 app.use(async (_req, _res, next) => {
   await ensureDBConnection();
   next();
 });
 
-// ✅ Mount routes
+// Mount routes
 app.use("/admin", adminRouter);
 app.use("/doctor", doctorRouter);
 app.use("/product", productRoutes);
@@ -75,5 +74,29 @@ app.use("/orders", orderRoutes);
 app.use("/filter", filterRoutes);
 
 app.use(ErrorHandler);
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
+
+wss.on("connection", (ws: WebSocket) => {
+  console.log("New WebSocket client connected");
+  ws.send(JSON.stringify({ message: "Welcome to WebSocket server!" }));
+  ws.on("message", (data) => {
+    console.log("Received from client:", data.toString());
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ message: data.toString() }));
+      }
+    });
+  });
+
+  ws.on("close", () => {
+    console.log("Client disconnected");
+  });
+});
+
+// Start server
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
 
 export default app;
