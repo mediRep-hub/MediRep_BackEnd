@@ -74,8 +74,10 @@ app.use("/orders", orderRoutes);
 app.use("/filter", filterRoutes);
 
 app.use(ErrorHandler);
+
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
+// const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer("https://medi-rep-back-end.vercel.app/");
 
 wss.on("connection", (ws: WebSocket) => {
   console.log("New WebSocket client connected");
