@@ -8,7 +8,7 @@ const generateShortId = () => {
 export interface IDoctorSubDoc extends Document {
   doctor: Types.ObjectId;
   callId: string;
-  status: "pending" | "close" | "rejected";
+  status: "pending" | "close" | "check In";
   activeRequisition: string;
   checkIn: string;
   checkOut: string;
