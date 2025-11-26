@@ -54,7 +54,6 @@ app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
 app.use("/filter", filterRoutes);
 
-// ✅ Global error handler
 app.use(ErrorHandler);
 
 export default app;

@@ -6,6 +6,7 @@ const productSchema = new mongoose.Schema({
   isfrom: { type: String, required: true },
   amount: { type: Number, required: true },
   productImage: { type: String, required: true },
+  strength: { type: String, required: true },
   isStatus: { type: String, required: true },
   sku: { type: String, unique: true },
   packSize: { type: String, required: true },

@@ -75,9 +75,7 @@ app.use("/filter", filterRoutes);
 
 app.use(ErrorHandler);
 
-// ✅ Create HTTP server instead of app.listen
 const server = createServer(app);
-
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws: WebSocket) => {
