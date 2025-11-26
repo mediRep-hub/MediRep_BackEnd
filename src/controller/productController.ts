@@ -116,7 +116,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
   }
 };
 
-// Update product
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

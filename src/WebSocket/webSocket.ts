@@ -1,16 +1,23 @@
-export const ws = new WebSocket("http://localhost:5001");
+const isProd = process.env.NODE_ENV === "production";
+
+const WS_URL = isProd
+  ? "wss://medi-rep-back-end.vercel.app"
+  : "ws://localhost:5001";
+export const ws = new WebSocket(WS_URL);
 
 const messageQueue: string[] = [];
 
+// Connection opened
 ws.onopen = () => {
-  console.log("✅ Connected to WebSocket server");
+  console.log("✅ WebSocket connected:", WS_URL);
 
-  // send queued messages
+  // Send queued messages
   while (messageQueue.length > 0) {
     ws.send(messageQueue.shift()!);
   }
 };
 
+// Listen for messages
 ws.onmessage = (event: MessageEvent) => {
   const data = JSON.parse(event.data);
   console.log("Received:", data);
@@ -27,7 +34,7 @@ export const sendMessage = (msg: string) => {
   }
 };
 
-// Ping server
+// Safe ping
 export const pingServer = () => {
   const data = JSON.stringify({ type: "ping" });
   if (ws.readyState === WebSocket.OPEN) {
