@@ -26,7 +26,6 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Medicines are required" });
     }
 
-    // Calculate subtotal
     const subtotal = medicines.reduce(
       (acc: number, med: any) => acc + med.amount,
       0
