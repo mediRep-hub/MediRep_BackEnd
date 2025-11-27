@@ -26,40 +26,23 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Medicines are required" });
     }
 
-    const subtotal = medicines.reduce(
-      (acc: number, med: any) => acc + med.amount,
-      0
-    );
-    const tax = +(subtotal * 0.1).toFixed(2);
-    const total = +(subtotal + tax).toFixed(2);
-
     const newOrder = new Order({
       ...rest,
       orderId: newOrderId,
       medicines,
-      subtotal,
-      tax,
-      total,
     });
-    await newOrder.save();
-    for (const med of medicines) {
-      const { name, quantity } = med;
 
-      await Product.updateOne(
-        { productName: name },
-        { $inc: { achievement: quantity } }
-      );
-    }
+    await newOrder.save();
 
     res.status(201).json({
       message: "Order created successfully",
       data: newOrder,
     });
   } catch (error: any) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ message: "Error creating order", error: error.message });
+    res.status(500).json({
+      message: "Error creating order",
+      error: error.message,
+    });
   }
 };
 
@@ -167,31 +150,34 @@ export const updateOrder = async (req: Request, res: Response) => {
   try {
     const { medicines, ...rest } = req.body;
 
-    let subtotal, tax, total;
+    const updatePayload: any = {
+      ...rest,
+    };
 
-    if (medicines) {
-      subtotal = medicines.reduce(
-        (acc: number, med: any) => acc + med.amount,
-        0
-      );
-      tax = +(subtotal * 0.1).toFixed(2);
-      total = +(subtotal + tax).toFixed(2);
+    // Only update medicines if provided
+    if (medicines && Array.isArray(medicines)) {
+      updatePayload.medicines = medicines;
     }
 
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
-      { ...rest, ...(medicines && { medicines, subtotal, tax, total }) },
+      updatePayload,
       { new: true }
     );
 
-    if (!updatedOrder)
+    if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found" });
+    }
 
-    res.status(200).json({ message: "Order updated", data: updatedOrder });
+    res.status(200).json({
+      message: "Order updated successfully",
+      data: updatedOrder,
+    });
   } catch (error: any) {
-    res
-      .status(500)
-      .json({ message: "Error updating order", error: error.message });
+    res.status(500).json({
+      message: "Error updating order",
+      error: error.message,
+    });
   }
 };
 

@@ -20,7 +20,7 @@ export interface IOrder extends Document {
   orderDate: Date;
   medicines: IMedicine[];
   subtotal: number;
-  tax: number;
+  discount: number;
   total: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -47,8 +47,8 @@ const orderSchema = new Schema<IOrder>(
     orderDate: { type: Date, required: true },
     medicines: { type: [medicineSchema], required: true },
     subtotal: { type: Number, required: true },
-    tax: { type: Number },
-    total: { type: Number },
+    discount: { type: Number, required: true },
+    total: { type: Number, required: true },
   },
   { timestamps: true }
 );
