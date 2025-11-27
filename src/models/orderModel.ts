@@ -15,7 +15,6 @@ export interface IOrder extends Document {
   doctor: mongoose.Types.ObjectId; // reference to Doctor
   strategyName: string;
   orderType: string;
-  amount: string;
   customerName: string;
   address: string;
   orderDate: Date;
@@ -43,7 +42,6 @@ const orderSchema = new Schema<IOrder>(
     doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
     strategyName: { type: String, required: true },
     orderType: { type: String, required: true },
-    amount: { type: String, required: true },
     customerName: { type: String, required: true },
     address: { type: String, required: true },
     orderDate: { type: Date, required: true },
