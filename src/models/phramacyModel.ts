@@ -1,9 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface IDoctor extends Document {
-  docId: string;
+export interface IPharmacy extends Document {
+  pharmacyId: string;
   name: string;
-  specialty: string;
   email: string;
   phone: string;
   startTime: string;
@@ -20,12 +19,11 @@ export interface IDoctor extends Document {
   };
 }
 
-const DoctorSchema: Schema = new Schema(
+const PharmacySchema: Schema = new Schema(
   {
-    docId: { type: String, unique: false },
+    pharmacyId: { type: String, unique: false },
 
     name: { type: String, required: true },
-    specialty: { type: String, required: true },
     email: { type: String, required: true, unique: false },
     phone: { type: String, required: true },
     startTime: { type: String, required: true },
@@ -43,4 +41,4 @@ const DoctorSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-export default mongoose.model<IDoctor>("Doctor", DoctorSchema);
+export default mongoose.model<IPharmacy>("Pharmacy", PharmacySchema);

@@ -1,28 +1,27 @@
 import { Request, Response } from "express";
-import Doctor from "../models/doctorModel";
+import Pharmacy from "../models/phramacyModel";
 import { Readable } from "stream";
 import csv from "csv-parser";
 import axios from "axios";
 
-const generateDocId = async (): Promise<string> => {
+const generatePharmacyId = async (): Promise<string> => {
   let unique = false;
-  let docId = "";
+  let pharmacyId = "";
 
   while (!unique) {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    docId = `DOC${randomNum}`;
-    const existing = await Doctor.findOne({ docId });
+    pharmacyId = `PHA${randomNum}`;
+    const existing = await Pharmacy.findOne({ pharmacyId });
     if (!existing) unique = true;
   }
 
-  return docId;
+  return pharmacyId;
 };
 
-export const addDoctor = async (req: Request, res: Response) => {
+export const addPharmacy = async (req: Request, res: Response) => {
   try {
-    const docId = await generateDocId();
+    const pharmacyId = await generatePharmacyId();
 
-    // Make sure frontend sends location as { address, lat, lng }
     const {
       name,
       specialty,
@@ -50,8 +49,8 @@ export const addDoctor = async (req: Request, res: Response) => {
       });
     }
 
-    const doctor = new Doctor({
-      docId,
+    const pharmacy = new Pharmacy({
+      pharmacyId,
       name,
       specialty,
       email,
@@ -66,131 +65,133 @@ export const addDoctor = async (req: Request, res: Response) => {
       location,
     });
 
-    await doctor.save();
+    await pharmacy.save();
 
     res.status(201).json({
       success: true,
-      message: "Doctor added successfully",
-      data: doctor,
+      message: "Pharmacy added successfully",
+      data: pharmacy,
     });
   } catch (error: any) {
-    console.error("Add Doctor Error:", error);
+    console.error("Add Pharmacy Error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to add doctor",
-    });
-  }
-};
-// ✅ Get all doctors
-export const getAllDoctorslist = async (req: Request, res: Response) => {
-  try {
-    const doctors = await Doctor.find().sort({ createdAt: -1 });
-    res.status(200).json({
-      success: true,
-      count: doctors.length,
-      data: doctors,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to fetch doctors",
+      message: error.message || "Failed to add pharmacy",
     });
   }
 };
 
-// ✅ Get all doctors with pagination
-export const getAllDoctors = async (req: Request, res: Response) => {
+// ✅ Get all pharmacies
+export const getAllPharmaciesList = async (req: Request, res: Response) => {
+  try {
+    const pharmacies = await Pharmacy.find().sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: pharmacies.length,
+      data: pharmacies,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch pharmacies",
+    });
+  }
+};
+
+// ✅ Get all pharmacies with pagination
+export const getAllPharmacies = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 6;
     const skip = (page - 1) * limit;
 
-    const totalDoctors = await Doctor.countDocuments();
-    const doctors = await Doctor.find()
+    const totalPharmacies = await Pharmacy.countDocuments();
+    const pharmacies = await Pharmacy.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
     res.status(200).json({
       success: true,
-      total: totalDoctors,
+      total: totalPharmacies,
       page,
-      pages: Math.ceil(totalDoctors / limit),
-      count: doctors.length,
-      data: doctors,
+      pages: Math.ceil(totalPharmacies / limit),
+      count: pharmacies.length,
+      data: pharmacies,
     });
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch doctors",
+      message: error.message || "Failed to fetch pharmacies",
     });
   }
 };
 
-// ✅ Get single doctor by ID
-export const getDoctorById = async (req: Request, res: Response) => {
+// ✅ Get single pharmacy by ID
+export const getPharmacyById = async (req: Request, res: Response) => {
   try {
-    const doctor = await Doctor.findById(req.params.id);
-    if (!doctor)
+    const pharmacy = await Pharmacy.findById(req.params.id);
+    if (!pharmacy)
       return res
         .status(404)
-        .json({ success: false, message: "Doctor not found" });
+        .json({ success: false, message: "Pharmacy not found" });
 
-    res.status(200).json({ success: true, data: doctor });
+    res.status(200).json({ success: true, data: pharmacy });
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch doctor",
+      message: error.message || "Failed to fetch pharmacy",
     });
   }
 };
 
-// ✅ Update doctor
-export const updateDoctor = async (req: Request, res: Response) => {
+// ✅ Update pharmacy
+export const updatePharmacy = async (req: Request, res: Response) => {
   try {
-    const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, {
+    const pharmacy = await Pharmacy.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
-    if (!doctor)
+    if (!pharmacy)
       return res
         .status(404)
-        .json({ success: false, message: "Doctor not found" });
+        .json({ success: false, message: "Pharmacy not found" });
 
     res.status(200).json({
       success: true,
-      message: "Doctor updated successfully",
-      data: doctor,
+      message: "Pharmacy updated successfully",
+      data: pharmacy,
     });
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update doctor",
+      message: error.message || "Failed to update pharmacy",
     });
   }
 };
 
-// ✅ Delete doctor
-export const deleteDoctor = async (req: Request, res: Response) => {
+// ✅ Delete pharmacy
+export const deletePharmacy = async (req: Request, res: Response) => {
   try {
-    const doctor = await Doctor.findByIdAndDelete(req.params.id);
-    if (!doctor)
+    const pharmacy = await Pharmacy.findByIdAndDelete(req.params.id);
+    if (!pharmacy)
       return res
         .status(404)
-        .json({ success: false, message: "Doctor not found" });
+        .json({ success: false, message: "Pharmacy not found" });
 
     res.status(200).json({
       success: true,
-      message: "Doctor deleted successfully",
+      message: "Pharmacy deleted successfully",
     });
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to delete doctor",
+      message: error.message || "Failed to delete pharmacy",
     });
   }
 };
 
-export const uploadCSVDoctor = async (req, res) => {
+// ✅ Upload CSV for pharmacies
+export const uploadCSVPharmacy = async (req, res) => {
   try {
     if (!req.file) {
       return res
@@ -201,7 +202,6 @@ export const uploadCSVDoctor = async (req, res) => {
     const rows = [];
     const stream = Readable.from(req.file.buffer);
 
-    // Read CSV rows
     await new Promise((resolve, reject) => {
       stream
         .pipe(csv())
@@ -219,8 +219,7 @@ export const uploadCSVDoctor = async (req, res) => {
 
     const apiKey = "AIzaSyBrNjsUsrJ0Mmjhe-WUKDKVaIsMkZ8iQ4A";
 
-    // Convert rows → doctor objects
-    const doctorsWithData = await Promise.all(
+    const pharmaciesWithData = await Promise.all(
       rows.map(async (r) => {
         const fullAddress =
           r.address || r.Address || r.location_address || r.Location || "";
@@ -228,7 +227,6 @@ export const uploadCSVDoctor = async (req, res) => {
         let lat = Number(r.location_lat) || 0;
         let lng = Number(r.location_lng) || 0;
 
-        // Geocode only if lat/lng missing
         if ((!lat || !lng) && fullAddress) {
           try {
             const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
@@ -247,7 +245,8 @@ export const uploadCSVDoctor = async (req, res) => {
         }
 
         return {
-          docId: r.docId || `DOC${Math.floor(1000 + Math.random() * 9000)}`,
+          pharmacyId:
+            r.pharmacyId || `PHA${Math.floor(1000 + Math.random() * 9000)}`,
           name: r.name || r.Name || "",
           specialty: r.specialty || r.Specialty || "",
           email: r.email || r.Email || "",
@@ -258,8 +257,6 @@ export const uploadCSVDoctor = async (req, res) => {
           area: r.area || r.Area || "",
           affiliation: r.affiliation || r.Affiliation || "",
           image: r.image || r.Image || "",
-
-          // Only location.address remains
           location: {
             address: fullAddress,
             lat,
@@ -269,14 +266,13 @@ export const uploadCSVDoctor = async (req, res) => {
       })
     );
 
-    // Insert into MongoDB
-    const inserted = await Doctor.insertMany(doctorsWithData, {
+    const inserted = await Pharmacy.insertMany(pharmaciesWithData, {
       ordered: false,
     });
 
     return res.status(201).json({
       success: true,
-      message: `✅ ${inserted.length} records inserted successfully out of ${doctorsWithData.length}`,
+      message: `✅ ${inserted.length} records inserted successfully out of ${pharmaciesWithData.length}`,
     });
   } catch (err) {
     console.error("Upload CSV Error:", err);

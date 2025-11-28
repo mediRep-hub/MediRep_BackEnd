@@ -10,6 +10,7 @@ import requisitionRoutes from "./routes/requisitionRoute";
 import uploadFileRoutes from "./routes/uploadRoute";
 import orderRoutes from "./routes/orderRoutes";
 import filterRoutes from "./routes/filterRoute";
+import pharmacyRoutes from "./routes/pharmacyRoutes";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
 import { createServer } from "http";
@@ -67,6 +68,7 @@ app.use(async (_req, _res, next) => {
 app.use("/admin", adminRouter);
 app.use("/doctor", doctorRouter);
 app.use("/product", productRoutes);
+app.use("/pharmacy", pharmacyRoutes);
 app.use("/callreport", callReportingRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
