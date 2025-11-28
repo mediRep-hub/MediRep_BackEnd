@@ -12,8 +12,7 @@ export interface IMedicine {
 export interface IOrder extends Document {
   orderId: string;
   mrName: string;
-  doctor: mongoose.Types.ObjectId; // reference to Doctor
-  strategyName: string;
+  doctor: mongoose.Types.ObjectId;
   orderType: string;
   customerName: string;
   address: string;
@@ -40,7 +39,6 @@ const orderSchema = new Schema<IOrder>(
     orderId: { type: String, required: true, unique: true },
     mrName: { type: String, required: true },
     doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
-    strategyName: { type: String, required: true },
     orderType: { type: String, required: true },
     customerName: { type: String, required: true },
     address: { type: String, required: true },
