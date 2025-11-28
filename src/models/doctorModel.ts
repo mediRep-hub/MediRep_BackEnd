@@ -12,6 +12,7 @@ export interface IDoctor extends Document {
   area: string;
   affiliation: string;
   image: string;
+  profileType: string;
 
   location: {
     address: string;
@@ -28,7 +29,7 @@ const DoctorSchema: Schema = new Schema(
     specialty: { type: String, required: true },
     email: { type: String, required: true, unique: false },
     phone: { type: String, required: true },
-
+    profileType: { type: String, required: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
 

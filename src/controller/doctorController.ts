@@ -329,9 +329,7 @@ export const uploadCSVDoctor = async (req, res) => {
           specialty: r.specialty || r.Specialty || "",
           email: r.email || r.Email || "",
           phone: r.phone || r.Phone || "",
-
-          // ❌ REMOVED: address: fullAddress,
-
+          profileType: r.profileType || r.profileType || "",
           startTime: r.startTime || r.StartTime || "",
           endTime: r.endTime || r.EndTime || "",
           region: r.region || r.Region || "",
