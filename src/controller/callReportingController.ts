@@ -3,6 +3,10 @@ import Doctor from "../models/doctorModel";
 import Admin from "../models/admin";
 import mongoose from "mongoose";
 import { Request, Response } from "express";
+import {
+  validateAddCallReport,
+  validateCheckLocation,
+} from "../validations/callReportingValidation";
 
 interface CheckLocationBody {
   callReportId: string;
@@ -13,6 +17,13 @@ interface CheckLocationBody {
 
 // ✅ Add / Create call report
 export const addCallReport = async (req, res) => {
+  const { error } = validateAddCallReport(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const { mrName, doctorList, ...rest } = req.body;
 
@@ -233,6 +244,13 @@ export const deleteCallReport = async (req, res) => {
 // ✅ Update call report by ID
 
 export const updateCallReport = async (req, res) => {
+  const { error } = validateAddCallReport(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const { id } = req.params; // CallReporting _id
     const { doctorList: incomingDoctors } = req.body; // array of doctors to add/update
@@ -366,6 +384,13 @@ export const checkDoctorLocation = async (
   req: Request<{}, {}, CheckLocationBody>,
   res: Response
 ) => {
+  const { error: locError } = validateCheckLocation(req.body);
+  if (locError) {
+    return res.status(400).json({
+      success: false,
+      message: locError.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const { callReportId, doctorId, lat, lng } = req.body;
 

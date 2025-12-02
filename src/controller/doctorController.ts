@@ -3,6 +3,7 @@ import Doctor from "../models/doctorModel";
 import { Readable } from "stream";
 import csv from "csv-parser";
 import axios from "axios";
+import { validateDoctorData } from "../validations/doctorValidation";
 
 const generateDocId = async (): Promise<string> => {
   let unique = false;
@@ -19,6 +20,13 @@ const generateDocId = async (): Promise<string> => {
 };
 
 export const addDoctor = async (req: Request, res: Response) => {
+  const { error } = validateDoctorData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const docId = await generateDocId();
 
@@ -147,6 +155,13 @@ export const getDoctorById = async (req: Request, res: Response) => {
 
 // ✅ Update doctor
 export const updateDoctor = async (req: Request, res: Response) => {
+  const { error } = validateDoctorData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -191,6 +206,13 @@ export const deleteDoctor = async (req: Request, res: Response) => {
 };
 
 export const uploadCSVDoctor = async (req, res) => {
+  const { error } = validateDoctorData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     if (!req.file) {
       return res

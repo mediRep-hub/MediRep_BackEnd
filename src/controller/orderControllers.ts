@@ -216,22 +216,56 @@ export const getOrderById = async (req: Request, res: Response) => {
 
 export const updateOrder = async (req: Request, res: Response) => {
   try {
-    const { medicines, ...rest } = req.body;
+    // Validate input first
+    const { error } = validateOrderData(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
 
-    const updatePayload: any = {
-      ...rest,
-    };
+    const { medicines, discount = 0, ...rest } = req.body;
+    const updatePayload: any = { ...rest };
 
-    // Only update medicines if provided
     if (medicines && Array.isArray(medicines)) {
+      if (medicines.length === 0) {
+        return res.status(400).json({ message: "Medicines cannot be empty" });
+      }
+
+      let calculatedSubtotal = 0;
+
+      for (let medicine of medicines) {
+        const { medicineId, quantity } = medicine;
+
+        if (!medicineId || !quantity) {
+          return res.status(400).json({
+            message: "Each medicine must have a medicineId and quantity",
+          });
+        }
+
+        const product = await Product.findById(medicineId);
+        if (!product) {
+          return res.status(400).json({
+            message: `Medicine with ID ${medicineId} does not exist`,
+          });
+        }
+
+        const priceAtOrder = product.amount;
+        calculatedSubtotal += quantity * priceAtOrder;
+        medicine.priceAtOrder = priceAtOrder;
+      }
+
+      const total = calculatedSubtotal - calculatedSubtotal * (discount / 100);
+
       updatePayload.medicines = medicines;
+      updatePayload.subtotal = calculatedSubtotal;
+      updatePayload.total = total;
+      updatePayload.discount = discount;
     }
 
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
       updatePayload,
       { new: true }
-    );
+    ).populate("medicines.medicineId"); // Populate medicines
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found" });
@@ -242,6 +276,7 @@ export const updateOrder = async (req: Request, res: Response) => {
       data: updatedOrder,
     });
   } catch (error: any) {
+    console.error(error);
     res.status(500).json({
       message: "Error updating order",
       error: error.message,

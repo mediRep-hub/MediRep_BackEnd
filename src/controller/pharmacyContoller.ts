@@ -3,6 +3,7 @@ import Pharmacy from "../models/phramacyModel";
 import { Readable } from "stream";
 import csv from "csv-parser";
 import axios from "axios";
+import { validateDoctorData } from "../validations/doctorValidation";
 
 const generatePharmacyId = async (): Promise<string> => {
   let unique = false;
@@ -19,6 +20,13 @@ const generatePharmacyId = async (): Promise<string> => {
 };
 
 export const addPharmacy = async (req: Request, res: Response) => {
+  const { error } = validateDoctorData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const pharmacyId = await generatePharmacyId();
 
@@ -147,6 +155,13 @@ export const getPharmacyById = async (req: Request, res: Response) => {
 
 // ✅ Update pharmacy
 export const updatePharmacy = async (req: Request, res: Response) => {
+  const { error } = validateDoctorData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const pharmacy = await Pharmacy.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -192,6 +207,13 @@ export const deletePharmacy = async (req: Request, res: Response) => {
 
 // ✅ Upload CSV for pharmacies
 export const uploadCSVPharmacy = async (req, res) => {
+  const { error } = validateDoctorData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     if (!req.file) {
       return res

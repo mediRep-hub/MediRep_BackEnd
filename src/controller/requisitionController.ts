@@ -3,6 +3,7 @@ import Requisition from "../models/requisitionModel";
 import Doctor from "../models/doctorModel";
 import Admin from "../models/admin";
 import mongoose from "mongoose";
+import { validateRequisitionData } from "../validations/requistionsValidation";
 
 // Generate unique reqId
 const generateReqId = async () => {
@@ -28,6 +29,13 @@ const calculateTotals = (products: any[] = []) => {
 
 // 🟢 Add a new requisition
 export const addRequisition = async (req: Request, res: Response) => {
+  const { error } = validateRequisitionData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   try {
     const reqId = await generateReqId();
 
@@ -231,6 +239,13 @@ export const deleteRequisition = async (req: Request, res: Response) => {
 
 // 🟢 Update accepted status
 export const updateAccepted = async (req: Request, res: Response) => {
+  const { error } = validateRequisitionData(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map((d) => d.message).join(", "),
+    });
+  }
   const { id } = req.params;
 
   try {
