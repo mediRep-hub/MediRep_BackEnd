@@ -173,85 +173,73 @@ export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
 };
 
 export const getMonthlyAchievement = async (req: Request, res: Response) => {
-  try {
-    const orders = await Order.find({}).lean();
-    const products = await Product.find({}).lean();
-
-    const productTargetMap: Record<string, number> = {};
-    products.forEach((p) => {
-      productTargetMap[p.productName] = p.target;
-    });
-
-    const monthlyData: Record<
-      string,
-      { totalAchievement: number; totalTarget: number }
-    > = {};
-    orders.forEach((order) => {
-      const month = order.orderDate.toISOString().slice(0, 7); // YYYY-MM
-
-      order.medicines.forEach((med) => {
-        const target = productTargetMap[med.name] || 0;
-
-        if (!monthlyData[month]) {
-          monthlyData[month] = { totalAchievement: 0, totalTarget: 0 };
-        }
-        monthlyData[month].totalAchievement += med.quantity;
-        monthlyData[month].totalTarget += target;
-      });
-    });
-    const allMonths = [
-      "2025-01",
-      "2025-02",
-      "2025-03",
-      "2025-04",
-      "2025-05",
-      "2025-06",
-      "2025-07",
-      "2025-08",
-      "2025-09",
-      "2025-10",
-      "2025-11",
-      "2025-12",
-    ];
-
-    allMonths.forEach((m) => {
-      if (!monthlyData[m]) {
-        monthlyData[m] = { totalAchievement: 0, totalTarget: 0 };
-      }
-    });
-    const months = Object.keys(monthlyData).sort();
-    const result: any[] = [];
-
-    let prevPercentage = 0;
-
-    months.forEach((month) => {
-      const { totalAchievement, totalTarget } = monthlyData[month];
-
-      const percentage =
-        totalTarget === 0 ? 0 : (totalAchievement / totalTarget) * 100;
-
-      const change =
-        prevPercentage === 0
-          ? 0
-          : ((percentage - prevPercentage) / prevPercentage) * 100;
-
-      result.push({
-        month,
-        totalAchievement,
-        totalTarget,
-        percentage: +percentage.toFixed(4),
-        change: +change.toFixed(2),
-      });
-
-      prevPercentage = percentage;
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
-  } catch (error: any) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  // try {
+  //   const orders = await Order.find({}).lean();
+  //   const products = await Product.find({}).lean();
+  //   const productTargetMap: Record<string, number> = {};
+  //   products.forEach((p) => {
+  //     productTargetMap[p.productName] = p.target;
+  //   });
+  //   const monthlyData: Record<
+  //     string,
+  //     { totalAchievement: number; totalTarget: number }
+  //   > = {};
+  //   orders.forEach((order) => {
+  //     const month = order.orderDate.toISOString().slice(0, 7); // YYYY-MM
+  //     order.medicines.forEach((med) => {
+  //       const target = productTargetMap[med.name] || 0;
+  //       if (!monthlyData[month]) {
+  //         monthlyData[month] = { totalAchievement: 0, totalTarget: 0 };
+  //       }
+  //       monthlyData[month].totalAchievement += med.quantity;
+  //       monthlyData[month].totalTarget += target;
+  //     });
+  //   });
+  //   const allMonths = [
+  //     "2025-01",
+  //     "2025-02",
+  //     "2025-03",
+  //     "2025-04",
+  //     "2025-05",
+  //     "2025-06",
+  //     "2025-07",
+  //     "2025-08",
+  //     "2025-09",
+  //     "2025-10",
+  //     "2025-11",
+  //     "2025-12",
+  //   ];
+  //   allMonths.forEach((m) => {
+  //     if (!monthlyData[m]) {
+  //       monthlyData[m] = { totalAchievement: 0, totalTarget: 0 };
+  //     }
+  //   });
+  //   const months = Object.keys(monthlyData).sort();
+  //   const result: any[] = [];
+  //   let prevPercentage = 0;
+  //   months.forEach((month) => {
+  //     const { totalAchievement, totalTarget } = monthlyData[month];
+  //     const percentage =
+  //       totalTarget === 0 ? 0 : (totalAchievement / totalTarget) * 100;
+  //     const change =
+  //       prevPercentage === 0
+  //         ? 0
+  //         : ((percentage - prevPercentage) / prevPercentage) * 100;
+  //     result.push({
+  //       month,
+  //       totalAchievement,
+  //       totalTarget,
+  //       percentage: +percentage.toFixed(4),
+  //       change: +change.toFixed(2),
+  //     });
+  //     prevPercentage = percentage;
+  //   });
+  //   return res.status(200).json({
+  //     success: true,
+  //     data: result,
+  //   });
+  // } catch (error: any) {
+  //   console.error(error);
+  //   res.status(500).json({ success: false, message: error.message });
+  // }
 };

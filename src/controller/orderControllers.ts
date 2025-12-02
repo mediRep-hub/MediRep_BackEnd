@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Order } from "../models/orderModel";
 import Admin from "../models/admin";
 import Product from "../models/productModel";
+import { validateOrderData } from "../validations/orderValidation";
 
 // Generate auto-incremented Order ID
 const generateOrderId = async (): Promise<string> => {
@@ -19,26 +20,67 @@ const generateOrderId = async (): Promise<string> => {
 // Add new order
 export const createOrder = async (req: Request, res: Response) => {
   try {
+    const { error } = validateOrderData(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
     const newOrderId = await generateOrderId();
-    const { medicines, ...rest } = req.body;
+
+    const { medicines, discount = 0, ...rest } = req.body;
 
     if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
       return res.status(400).json({ message: "Medicines are required" });
     }
 
+    let calculatedSubtotal = 0;
+
+    for (let medicine of medicines) {
+      const { medicineId, quantity } = medicine;
+
+      if (!medicineId || !quantity) {
+        return res.status(400).json({
+          message: "Each medicine must have a medicineId and quantity",
+        });
+      }
+
+      const product = await Product.findById(medicineId);
+      if (!product) {
+        return res.status(400).json({
+          message: `Medicine with ID ${medicineId} does not exist`,
+        });
+      }
+
+      const priceAtOrder = product.amount;
+
+      calculatedSubtotal += quantity * priceAtOrder;
+
+      medicine.priceAtOrder = priceAtOrder;
+    }
+
+    let total = calculatedSubtotal - calculatedSubtotal * (discount / 100);
+
     const newOrder = new Order({
       ...rest,
       orderId: newOrderId,
       medicines,
+      subtotal: calculatedSubtotal,
+      total,
+      discount,
     });
 
     await newOrder.save();
 
+    const populatedOrder = await Order.findById(newOrder._id)
+      .populate("medicines.medicineId") // Populate the medicineId with the full Product object
+      .exec();
+
     res.status(201).json({
       message: "Order created successfully",
-      data: newOrder,
+      data: populatedOrder,
     });
   } catch (error: any) {
+    console.error(error);
     res.status(500).json({
       message: "Error creating order",
       error: error.message,
@@ -47,6 +89,7 @@ export const createOrder = async (req: Request, res: Response) => {
 };
 
 // Get all orders
+
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
     const {
@@ -58,6 +101,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
       endDate,
     } = req.query;
 
+    // Pagination setup
     const pageNumber = parseInt(page as string, 10) || 1;
     const pageSize = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * pageSize;
@@ -81,7 +125,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     }
 
     // -----------------------------
-    // Date Filter
+    // Date Filter (Exact Date)
     // -----------------------------
     if (date) {
       const dayStart = new Date(date as string);
@@ -92,6 +136,9 @@ export const getAllOrders = async (req: Request, res: Response) => {
       filter.createdAt = { $gte: dayStart, $lte: dayEnd };
     }
 
+    // -----------------------------
+    // Date Range Filter (Start Date - End Date)
+    // -----------------------------
     if (startDate && endDate) {
       const start = new Date(startDate as string);
       start.setHours(0, 0, 0, 0);
@@ -102,23 +149,24 @@ export const getAllOrders = async (req: Request, res: Response) => {
     }
 
     // -----------------------------
-    // Total count
+    // Total Count of Filtered Orders
     // -----------------------------
     const totalItems = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / pageSize);
 
     // -----------------------------
-    // Fetch orders with pagination
+    // Fetch Orders with Pagination and Population
     // -----------------------------
     const orders = await Order.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .populate("doctor", "name specialty email phone image docId")
-      .populate("mrName", "name");
+      .sort({ createdAt: -1 }) // Sort by creation date, newest first
+      .skip(skip) // Skip the previous pages based on pagination
+      .limit(pageSize) // Limit the number of orders per page
+      .populate("medicines.medicineId") // Populate medicineId with full Product data
+      .populate("mrName", "name") // Populate the MR name
+      .exec();
 
     // -----------------------------
-    // Response
+    // Return the Response
     // -----------------------------
     res.status(200).json({
       success: true,
@@ -129,20 +177,40 @@ export const getAllOrders = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("GetAllOrders Error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 // Get single order by ID
 export const getOrderById = async (req: Request, res: Response) => {
   try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ message: "Order not found" });
-    res.status(200).json(order);
+    // Fetch the order by its ID and populate the medicine references
+    const order = await Order.findById(req.params.id)
+      .populate("medicines.medicineId") // Populate medicineId with full Product data
+      .populate("mrName", "name") // Populate MR Name (assuming it's a reference to Admin)
+      .exec();
+
+    // Check if the order exists
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Return the populated order
+    res.status(200).json({
+      success: true,
+      message: "Order fetched successfully",
+      data: order,
+    });
   } catch (error: any) {
-    res
-      .status(500)
-      .json({ message: "Error fetching order", error: error.message });
+    console.error("Error fetching order by ID:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching order",
+      error: error.message,
+    });
   }
 };
 
