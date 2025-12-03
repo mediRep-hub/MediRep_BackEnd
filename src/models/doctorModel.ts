@@ -27,6 +27,7 @@ const DoctorSchema: Schema = new Schema(
     name: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
+    specialty: { type: String, required: true, unique: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     region: { type: String, required: true },

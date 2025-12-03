@@ -31,7 +31,10 @@ export const validateProductData = (data: any) => {
       "any.required": "Strength is required",
       "string.empty": "Strength cannot be empty",
     }),
-
+    specialty: Joi.string().required().messages({
+      "any.required": "Specialty is required",
+      "string.empty": "Specialty cannot be empty",
+    }),
     isStatus: Joi.string().required().messages({
       "any.required": "Status is required",
       "string.empty": "Status cannot be empty",
