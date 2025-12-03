@@ -2,46 +2,56 @@ import Joi from "joi";
 
 const objectIdRegex = /^[a-fA-F0-9]{24}$/;
 
-const doctorListSchema = Joi.object({
-  doctorId: Joi.string().pattern(objectIdRegex).required().messages({
-    "any.required": "Doctor ID is required",
-    "string.pattern.base": "Invalid Doctor ID",
-  }),
-  doctorName: Joi.string().required().messages({
-    "any.required": "Doctor Name is required",
-    "string.empty": "Doctor Name cannot be empty",
-  }),
-});
-
 const productSchema = Joi.object({
-  name: Joi.string().required(),
-  quantity: Joi.number().min(1).required(),
+  name: Joi.string().required().messages({
+    "any.required": "Product name is required",
+    "string.empty": "Product name cannot be empty",
+  }),
+  quantity: Joi.number().min(1).required().messages({
+    "any.required": "Product quantity is required",
+    "number.base": "Quantity must be a number",
+    "number.min": "Quantity must be at least 1",
+  }),
 });
 
 export const validateRequisitionData = (data: any) => {
   const schema = Joi.object({
-    mrName: Joi.string().required(),
-
-    doctorList: Joi.array().items(doctorListSchema).min(1).required().messages({
-      "array.base": "doctorList must be an array",
-      "array.min": "At least 1 doctor entry is required",
-      "any.required": "doctorList is required",
+    mrName: Joi.string().required().messages({
+      "any.required": "MR Name is required",
+      "string.empty": "MR Name cannot be empty",
     }),
 
-    region: Joi.string().optional(),
-    strategyName: Joi.string().optional(),
-    route: Joi.string().optional(),
-    day: Joi.string().optional(),
+    // Single doctor fields
+    doctor: Joi.string().pattern(objectIdRegex).required().messages({
+      "any.required": "Doctor ID is required",
+      "string.pattern.base": "Invalid Doctor ID",
+    }),
+    doctorName: Joi.string().required().messages({
+      "any.required": "Doctor Name is required",
+      "string.empty": "Doctor Name cannot be empty",
+    }),
 
     status: Joi.string().optional(),
 
-    attachedDoc: Joi.string().required(),
+    attachedDoc: Joi.string().required().messages({
+      "any.required": "Attached document is required",
+      "string.empty": "Attached document cannot be empty",
+    }),
 
-    details: Joi.string().required(),
+    details: Joi.string().required().messages({
+      "any.required": "Details are required",
+      "string.empty": "Details cannot be empty",
+    }),
 
-    product: Joi.array().items(productSchema).min(1).required(),
+    product: Joi.array().items(productSchema).min(1).required().messages({
+      "any.required": "Product list is required",
+      "array.min": "At least one product is required",
+    }),
 
-    startingDate: Joi.date().required(),
+    startingDate: Joi.date().required().messages({
+      "any.required": "Starting date is required",
+      "date.base": "Starting date must be a valid date",
+    }),
 
     accepted: Joi.boolean().optional(),
     remarks: Joi.string().optional(),
@@ -50,14 +60,26 @@ export const validateRequisitionData = (data: any) => {
 
     requisitionType: Joi.string()
       .valid("cash", "other", "house", "car", "tour")
-      .required(),
+      .required()
+      .messages({
+        "any.only":
+          "Requisition type must be one of cash, other, house, car, tour",
+        "any.required": "Requisition type is required",
+      }),
 
     amount: Joi.number().when("requisitionType", {
       is: "cash",
-      then: Joi.required(),
+      then: Joi.required().messages({
+        "any.required": "Amount is required for cash requisition",
+      }),
       otherwise: Joi.optional(),
     }),
-  }).unknown(true); // ← allows extra fields (safe option)
+
+    region: Joi.string().optional(),
+    strategyName: Joi.string().optional(),
+    route: Joi.string().optional(),
+    day: Joi.string().optional(),
+  }).unknown(true); // allows extra fields
 
   return schema.validate(data, { abortEarly: false });
 };
