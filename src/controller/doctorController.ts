@@ -206,13 +206,13 @@ export const deleteDoctor = async (req: Request, res: Response) => {
 };
 
 export const uploadCSVDoctor = async (req, res) => {
-  const { error } = validateDoctorData(req.body);
-  if (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.details.map((d) => d.message).join(", "),
-    });
-  }
+  // const { error } = validateDoctorData(req.body);
+  // if (error) {
+  //   return res.status(400).json({
+  //     success: false,
+  //     message: error.details.map((d) => d.message).join(", "),
+  //   });
+  // }
   try {
     if (!req.file) {
       return res

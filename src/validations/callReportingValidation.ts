@@ -1,36 +1,42 @@
 import Joi from "joi";
-import mongoose from "mongoose";
 
 const objectIdRegex = /^[a-fA-F0-9]{24}$/;
 
-const doctorSchema = Joi.object({
-  doctor: Joi.string().pattern(objectIdRegex).required().messages({
-    "any.required": "Doctor ID is required",
-    "string.pattern.base": "Invalid Doctor ID (must be ObjectId)",
-  }),
-  status: Joi.string().valid("pending", "close").optional().messages({
-    "any.only": "Status must be 'pending' or 'close'",
-  }),
-});
-
+// Validation for adding call report
 export const validateAddCallReport = (data: any) => {
   const schema = Joi.object({
-    mrName: Joi.string().required().messages({
-      "any.required": "MR Name is required",
-      "string.empty": "MR Name cannot be empty",
+    mrName: Joi.string().pattern(objectIdRegex).required().messages({
+      "any.required": "MR ID is required",
+      "string.empty": "MR ID cannot be empty",
+      "string.pattern.base": "Invalid MR ID (must be a valid ObjectId)",
     }),
-    doctorList: Joi.array().min(1).items(doctorSchema).required().messages({
-      "any.required": "Doctor list is required",
-      "array.base": "Doctor list must be an array",
-      "array.min": "At least one doctor is required",
-    }),
+    doctorList: Joi.array()
+      .items(
+        Joi.string().pattern(objectIdRegex).required().messages({
+          "any.required": "Doctor ID is required",
+          "string.pattern.base": "Invalid Doctor ID (must be ObjectId)",
+        })
+      )
+      .min(1)
+      .required()
+      .messages({
+        "array.base": "Doctor list must be an array",
+        "array.min": "At least one doctor is required",
+        "any.required": "Doctor list is required",
+      }),
+    region: Joi.string().optional(),
     area: Joi.string().optional(),
+    route: Joi.string().optional(),
+    strategyName: Joi.string().optional(),
+    day: Joi.string().optional(),
     remarks: Joi.string().optional(),
     date: Joi.date().optional(),
-  });
+  }).unknown(true); // allow extra unknown fields if needed
 
   return schema.validate(data, { abortEarly: false });
 };
+
+// Validation for checking location
 export const validateCheckLocation = (data: any) => {
   const schema = Joi.object({
     callReportId: Joi.string().pattern(objectIdRegex).required().messages({

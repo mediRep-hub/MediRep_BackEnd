@@ -31,9 +31,9 @@ export const validateProductData = (data: any) => {
       "any.required": "Strength is required",
       "string.empty": "Strength cannot be empty",
     }),
-    isStatus: Joi.string().valid("active", "inactive").required().messages({
+    isStatus: Joi.string().valid("Active", "Discontinued").required().messages({
       "any.required": "Status is required",
-      "any.only": "Status must be either 'active' or 'inactive'",
+      "any.only": "Status must be either 'Active' or 'Discontinued'",
     }),
     sku: Joi.string().pattern(skuRegex).optional().messages({
       "string.pattern.base": "SKU format is invalid (Example: ABC-1234)",
