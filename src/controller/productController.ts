@@ -176,6 +176,7 @@ export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "CSV update failed" });
   }
 };
+
 export const getMonthlyAchievement = async (req: Request, res: Response) => {
   try {
     const orders = await Order.find({}).lean();
@@ -195,14 +196,14 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
       const month = new Date(order.createdAt).toISOString().slice(0, 7);
 
       order.medicines.forEach((med) => {
-        const productName = (med.medicineId as any)?.productName || "";
-        const target = productTargetMap[productName] || 0;
+        const productId = med.medicineId?.toString() || "";
+        const target = productTargetMap[productId] || 0;
 
         if (!monthlyData[month]) {
           monthlyData[month] = { totalAchievement: 0, totalTarget: 0 };
         }
 
-        monthlyData[month].totalAchievement += med.quantity;
+        monthlyData[month].totalAchievement += Number(med.quantity);
         monthlyData[month].totalTarget += target;
       });
     });

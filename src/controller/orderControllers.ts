@@ -3,6 +3,7 @@ import { Order } from "../models/orderModel";
 import Admin from "../models/admin";
 import Product from "../models/productModel";
 import { validateOrderData } from "../validations/orderValidation";
+import mongoose from "mongoose";
 
 // Generate auto-incremented Order ID
 const generateOrderId = async (): Promise<string> => {
@@ -26,7 +27,6 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     const newOrderId = await generateOrderId();
-
     const { medicines, discount = 0, ...rest } = req.body;
 
     if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
@@ -35,12 +35,18 @@ export const createOrder = async (req: Request, res: Response) => {
 
     let calculatedSubtotal = 0;
 
-    for (let medicine of medicines) {
-      const { medicineId, quantity } = medicine;
+    for (let med of medicines) {
+      const { medicineId, quantity } = med;
 
       if (!medicineId || !quantity) {
         return res.status(400).json({
           message: "Each medicine must have a medicineId and quantity",
+        });
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(medicineId)) {
+        return res.status(400).json({
+          message: `Invalid medicineId: ${medicineId}`,
         });
       }
 
@@ -51,14 +57,28 @@ export const createOrder = async (req: Request, res: Response) => {
         });
       }
 
+      const qty = Number(quantity);
+      if (isNaN(qty)) {
+        return res.status(400).json({
+          message: `Invalid quantity for medicineId: ${medicineId}`,
+        });
+      }
+
+      // Price at the time of order
       const priceAtOrder = product.amount;
+      calculatedSubtotal += qty * priceAtOrder;
+      med.priceAtOrder = priceAtOrder;
 
-      calculatedSubtotal += quantity * priceAtOrder;
+      // 🔥 Update product achievement (Correct way)
+      await Product.updateOne(
+        { _id: medicineId },
+        { $inc: { achievement: qty } }
+      );
 
-      medicine.priceAtOrder = priceAtOrder;
+      console.log(`Achievement Updated → ${product.productName}: +${qty}`);
     }
 
-    let total = calculatedSubtotal - calculatedSubtotal * (discount / 100);
+    const total = calculatedSubtotal - calculatedSubtotal * (discount / 100);
 
     const newOrder = new Order({
       ...rest,
@@ -72,16 +92,16 @@ export const createOrder = async (req: Request, res: Response) => {
     await newOrder.save();
 
     const populatedOrder = await Order.findById(newOrder._id)
-      .populate("medicines.medicineId") // Populate the medicineId with the full Product object
+      .populate("medicines.medicineId")
       .exec();
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Order created successfully",
       data: populatedOrder,
     });
   } catch (error: any) {
     console.error(error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Error creating order",
       error: error.message,
     });
@@ -216,56 +236,22 @@ export const getOrderById = async (req: Request, res: Response) => {
 
 export const updateOrder = async (req: Request, res: Response) => {
   try {
-    // Validate input first
-    const { error } = validateOrderData(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
+    const { medicines, ...rest } = req.body;
 
-    const { medicines, discount = 0, ...rest } = req.body;
-    const updatePayload: any = { ...rest };
+    const updatePayload: any = {
+      ...rest,
+    };
 
+    // Only update medicines if provided
     if (medicines && Array.isArray(medicines)) {
-      if (medicines.length === 0) {
-        return res.status(400).json({ message: "Medicines cannot be empty" });
-      }
-
-      let calculatedSubtotal = 0;
-
-      for (let medicine of medicines) {
-        const { medicineId, quantity } = medicine;
-
-        if (!medicineId || !quantity) {
-          return res.status(400).json({
-            message: "Each medicine must have a medicineId and quantity",
-          });
-        }
-
-        const product = await Product.findById(medicineId);
-        if (!product) {
-          return res.status(400).json({
-            message: `Medicine with ID ${medicineId} does not exist`,
-          });
-        }
-
-        const priceAtOrder = product.amount;
-        calculatedSubtotal += quantity * priceAtOrder;
-        medicine.priceAtOrder = priceAtOrder;
-      }
-
-      const total = calculatedSubtotal - calculatedSubtotal * (discount / 100);
-
       updatePayload.medicines = medicines;
-      updatePayload.subtotal = calculatedSubtotal;
-      updatePayload.total = total;
-      updatePayload.discount = discount;
     }
 
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
       updatePayload,
       { new: true }
-    ).populate("medicines.medicineId"); // Populate medicines
+    );
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found" });
@@ -276,7 +262,6 @@ export const updateOrder = async (req: Request, res: Response) => {
       data: updatedOrder,
     });
   } catch (error: any) {
-    console.error(error);
     res.status(500).json({
       message: "Error updating order",
       error: error.message,
