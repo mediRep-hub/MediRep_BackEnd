@@ -3,7 +3,7 @@ import Pharmacy from "../models/phramacyModel";
 import { Readable } from "stream";
 import csv from "csv-parser";
 import axios from "axios";
-import { validateDoctorData } from "../validations/doctorValidation";
+import { validatePharmacyData } from "../validations/pharmacyValidation";
 
 const generatePharmacyId = async (): Promise<string> => {
   let unique = false;
@@ -20,7 +20,7 @@ const generatePharmacyId = async (): Promise<string> => {
 };
 
 export const addPharmacy = async (req: Request, res: Response) => {
-  const { error } = validateDoctorData(req.body);
+  const { error } = validatePharmacyData(req.body);
   if (error) {
     return res.status(400).json({
       success: false,
@@ -155,7 +155,7 @@ export const getPharmacyById = async (req: Request, res: Response) => {
 
 // ✅ Update pharmacy
 export const updatePharmacy = async (req: Request, res: Response) => {
-  const { error } = validateDoctorData(req.body);
+  const { error } = validatePharmacyData(req.body);
   if (error) {
     return res.status(400).json({
       success: false,
@@ -207,7 +207,7 @@ export const deletePharmacy = async (req: Request, res: Response) => {
 
 // ✅ Upload CSV for pharmacies
 export const uploadCSVPharmacy = async (req, res) => {
-  const { error } = validateDoctorData(req.body);
+  const { error } = validatePharmacyData(req.body);
   if (error) {
     return res.status(400).json({
       success: false,
