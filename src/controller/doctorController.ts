@@ -57,6 +57,24 @@ export const addDoctor = async (req: Request, res: Response) => {
         message: "Location with address, lat, and lng is required",
       });
     }
+    const existingDoctor = await Doctor.findOne({
+      $or: [{ name }, { email }, { phone }],
+    });
+
+    if (existingDoctor) {
+      let conflictMsg = "";
+
+      if (existingDoctor.name === name) conflictMsg = "Name already exists";
+      else if (existingDoctor.email === email)
+        conflictMsg = "Email already exists";
+      else if (existingDoctor.phone === phone)
+        conflictMsg = "Phone number already exists";
+
+      return res.status(400).json({
+        success: false,
+        message: conflictMsg,
+      });
+    }
 
     const doctor = new Doctor({
       docId,
@@ -83,6 +101,18 @@ export const addDoctor = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Add Doctor Error:", error);
+
+    // Handle MongoDB duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0]; // email, name, or phone
+      return res.status(400).json({
+        success: false,
+        message: `${
+          field.charAt(0).toUpperCase() + field.slice(1)
+        } already exists`,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: error.message || "Failed to add doctor",

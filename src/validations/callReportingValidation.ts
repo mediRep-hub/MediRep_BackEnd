@@ -1,8 +1,6 @@
 import Joi from "joi";
 
 const objectIdRegex = /^[a-fA-F0-9]{24}$/;
-
-// Validation for adding call report
 export const validateAddCallReport = (data: any) => {
   const schema = Joi.object({
     mrName: Joi.string().pattern(objectIdRegex).required().messages({
@@ -31,12 +29,11 @@ export const validateAddCallReport = (data: any) => {
     day: Joi.string().optional(),
     remarks: Joi.string().optional(),
     date: Joi.date().optional(),
-  }).unknown(true); // allow extra unknown fields if needed
+  }).unknown(true);
 
   return schema.validate(data, { abortEarly: false });
 };
 
-// Validation for checking location
 export const validateCheckLocation = (data: any) => {
   const schema = Joi.object({
     callReportId: Joi.string().pattern(objectIdRegex).required().messages({
