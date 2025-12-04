@@ -157,12 +157,8 @@ export const deleteProduct = async (req: Request, res: Response) => {
   }
 };
 export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
-  const { error } = validateProductData(req.body);
-  if (error) {
-    return res.status(400).json({ message: error.details[0].message });
-  }
   try {
-    const results: any[] = req.body;
+    const results = req.body.data;
 
     if (!results || !Array.isArray(results) || results.length === 0) {
       return res.status(400).json({ message: "No data found in request" });
