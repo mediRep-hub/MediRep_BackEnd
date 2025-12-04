@@ -122,10 +122,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
 };
 
 export const updateProduct = async (req: Request, res: Response) => {
-  const { error } = validateProductData(req.body);
-  if (error) {
-    return res.status(400).json({ message: error.details[0].message });
-  }
   try {
     const { id } = req.params;
     const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {
