@@ -99,10 +99,6 @@ export const getAllCallReports = async (req: Request, res: Response) => {
     const skip = (pageNumber - 1) * pageSize;
 
     let filter: any = {};
-
-    // ---------------------------------------------
-    // 1️⃣ Filter — MR Name
-    // ---------------------------------------------
     if (mrName && mrName !== "All") {
       if (mongoose.Types.ObjectId.isValid(mrName as string)) {
         filter.mrName = mrName;
@@ -122,24 +118,11 @@ export const getAllCallReports = async (req: Request, res: Response) => {
         filter.mrName = mr._id;
       }
     }
-
-    // ---------------------------------------------
-    // 2️⃣ Filter — Area
-    // ---------------------------------------------
     if (area && area !== "All") {
       filter.area = area;
     }
 
-    // ---------------------------------------------
-    // 3️⃣ Filter — Date Filters (createdAt)
-    //
-    // Supports:
-    //   - Single Date (date)
-    //   - Range (startDate + endDate)
-    // ---------------------------------------------
-
     if (date) {
-      // Single date → whole day filter
       const dayStart = new Date(date as string);
       dayStart.setHours(0, 0, 0, 0);
 
@@ -158,25 +141,13 @@ export const getAllCallReports = async (req: Request, res: Response) => {
 
       filter.createdAt = { $gte: start, $lte: end };
     }
-
-    // ---------------------------------------------
-    // Count Total
-    // ---------------------------------------------
     const totalReports = await CallReporting.countDocuments(filter);
-
-    // ---------------------------------------------
-    // Fetch Reports
-    // ---------------------------------------------
     const reports = await CallReporting.find(filter)
       .populate("doctorList.doctor")
       .populate("mrName")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize);
-
-    // ---------------------------------------------
-    // Doctor Pagination
-    // ---------------------------------------------
     const reportsWithPaginatedDoctors = reports.map((report) => {
       const totalCalls = report.doctorList.length;
       const completedCalls = report.doctorList.filter(
@@ -202,9 +173,6 @@ export const getAllCallReports = async (req: Request, res: Response) => {
       };
     });
 
-    // ---------------------------------------------
-    // Response
-    // ---------------------------------------------
     res.status(200).json({
       success: true,
       page: pageNumber,
@@ -252,8 +220,8 @@ export const updateCallReport = async (req, res) => {
     });
   }
   try {
-    const { id } = req.params; // CallReporting _id
-    const { doctorList: incomingDoctors } = req.body; // array of doctors to add/update
+    const { id } = req.params;
+    const { doctorList: incomingDoctors } = req.body;
 
     if (
       !incomingDoctors ||
@@ -265,38 +233,30 @@ export const updateCallReport = async (req, res) => {
         .json({ success: false, message: "No doctor data provided." });
     }
 
-    // Find the main call report
     const callReport = await CallReporting.findById(id);
     if (!callReport) {
       return res
         .status(404)
         .json({ success: false, message: "Call report not found" });
     }
-
-    // Convert existing doctor IDs to strings for comparison
     const existingDoctorIds = callReport.doctorList.map((d) =>
       d.doctor.toString()
     );
 
     incomingDoctors.forEach((doc) => {
-      const doctorId = doc.doctor; // should be ObjectId or string
+      const doctorId = doc.doctor;
       const index = existingDoctorIds.indexOf(doctorId);
 
       if (index > -1) {
-        // Doctor exists -> update fields
         Object.assign(callReport.doctorList[index], doc);
       } else {
-        // Doctor does not exist -> add as new subdocument
         callReport.doctorList.push(
           CallReporting.prepareDoctorList([doctorId])[0]
         );
       }
     });
 
-    // Save the updated call report
     await callReport.save();
-
-    // Populate doctor data for response
     await callReport.populate("doctorList.doctor");
 
     res.status(200).json({ success: true, data: callReport });
@@ -312,8 +272,6 @@ export const reorderDoctorList = async (req, res) => {
   try {
     const { id } = req.params;
     const { orderedDoctorIds } = req.body;
-
-    // Validate input
     if (
       !orderedDoctorIds ||
       !Array.isArray(orderedDoctorIds) ||
@@ -400,7 +358,6 @@ export const checkDoctorLocation = async (
         .json({ success: false, message: "Missing fields" });
     }
 
-    // Find the call report
     const callReport = await CallReporting.findById(callReportId).populate(
       "doctorList.doctor"
     );
@@ -411,7 +368,6 @@ export const checkDoctorLocation = async (
         .json({ success: false, message: "Call report not found" });
     }
 
-    // Find the doctor inside the call report
     const doctorEntry = callReport.doctorList.find(
       (d) => d.doctor._id.toString() === doctorId
     );

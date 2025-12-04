@@ -29,8 +29,6 @@ export const addDoctor = async (req: Request, res: Response) => {
   }
   try {
     const docId = await generateDocId();
-
-    // Make sure frontend sends location as { address, lat, lng }
     const {
       name,
       specialty,
@@ -101,10 +99,8 @@ export const addDoctor = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Add Doctor Error:", error);
-
-    // Handle MongoDB duplicate key errors
     if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0]; // email, name, or phone
+      const field = Object.keys(error.keyValue)[0];
       return res.status(400).json({
         success: false,
         message: `${
@@ -252,8 +248,6 @@ export const uploadCSVDoctor = async (req, res) => {
 
     const rows = [];
     const stream = Readable.from(req.file.buffer);
-
-    // Read CSV rows
     await new Promise((resolve, reject) => {
       stream
         .pipe(csv())
@@ -270,8 +264,6 @@ export const uploadCSVDoctor = async (req, res) => {
     }
 
     const apiKey = "AIzaSyBrNjsUsrJ0Mmjhe-WUKDKVaIsMkZ8iQ4A";
-
-    // Convert rows → doctor objects
     const doctorsWithData = await Promise.all(
       rows.map(async (r) => {
         const fullAddress =
@@ -280,7 +272,6 @@ export const uploadCSVDoctor = async (req, res) => {
         let lat = Number(r.location_lat) || 0;
         let lng = Number(r.location_lng) || 0;
 
-        // Geocode only if lat/lng missing
         if ((!lat || !lng) && fullAddress) {
           try {
             const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
@@ -310,8 +301,6 @@ export const uploadCSVDoctor = async (req, res) => {
           area: r.area || r.Area || "",
           affiliation: r.affiliation || r.Affiliation || "",
           image: r.image || r.Image || "",
-
-          // Only location.address remains
           location: {
             address: fullAddress,
             lat,
@@ -320,8 +309,6 @@ export const uploadCSVDoctor = async (req, res) => {
         };
       })
     );
-
-    // Insert into MongoDB
     const inserted = await Doctor.insertMany(doctorsWithData, {
       ordered: false,
     });

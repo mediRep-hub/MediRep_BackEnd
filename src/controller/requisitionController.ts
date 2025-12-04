@@ -38,8 +38,6 @@ export const addRequisition = async (req: Request, res: Response) => {
   }
   try {
     const reqId = await generateReqId();
-
-    // Validate amount if type is Cash
     if (req.body.requisitionType === "Cash" && !req.body.amount) {
       return res
         .status(400)
@@ -68,7 +66,6 @@ export const addRequisition = async (req: Request, res: Response) => {
   }
 };
 
-// 🟢 Get all requisitions with pagination
 export const getAllRequisitions = async (req: Request, res: Response) => {
   try {
     const {
@@ -85,14 +82,9 @@ export const getAllRequisitions = async (req: Request, res: Response) => {
     const skip = (pageNumber - 1) * pageSize;
 
     let filter: any = {};
-
-    // -----------------------------
-    // MR Name Filter
-    // -----------------------------
     if (mrName && mrName !== "All") {
-      // Match by Admin _id OR by name directly in requisition
       filter.$or = [
-        { mrName: mrName }, // in case mrName is stored as string
+        { mrName: mrName },
         {
           mrName: {
             $in: (
@@ -102,10 +94,6 @@ export const getAllRequisitions = async (req: Request, res: Response) => {
         },
       ];
     }
-
-    // -----------------------------
-    // Date Filters
-    // -----------------------------
     if (date) {
       const dayStart = new Date(date as string);
       dayStart.setHours(0, 0, 0, 0);
@@ -121,25 +109,13 @@ export const getAllRequisitions = async (req: Request, res: Response) => {
       end.setHours(23, 59, 59, 999);
       filter.createdAt = { $gte: start, $lte: end };
     }
-
-    // -----------------------------
-    // Total count
-    // -----------------------------
     const total = await Requisition.countDocuments(filter);
-
-    // -----------------------------
-    // Fetch filtered requisitions
-    // -----------------------------
     const requisitions = await Requisition.find(filter)
       .populate("doctor", "name image specialty")
       .populate("mrName", "name")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize);
-
-    // -----------------------------
-    // Response
-    // -----------------------------
     res.status(200).json({
       success: true,
       page: pageNumber,
@@ -187,15 +163,11 @@ export const updateRequisition = async (req: Request, res: Response) => {
         updates[field] = req.body[field];
       }
     });
-
-    // Validate amount if type is Cash
     if (updates.requisitionType === "Cash" && !updates.amount) {
       return res
         .status(400)
         .json({ error: "Amount is required for Cash type" });
     }
-
-    // Recalculate total quantity if product updated
     if (updates.product && Array.isArray(updates.product)) {
       const { totalQuantity } = calculateTotals(updates.product);
       updates.totalQuantity = totalQuantity;

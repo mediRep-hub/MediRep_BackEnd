@@ -64,12 +64,9 @@ export const createOrder = async (req: Request, res: Response) => {
         });
       }
 
-      // Price at the time of order
       const priceAtOrder = product.amount;
       calculatedSubtotal += qty * priceAtOrder;
       med.priceAtOrder = priceAtOrder;
-
-      // 🔥 Update product achievement (Correct way)
       await Product.updateOne(
         { _id: medicineId },
         { $inc: { achievement: qty } }
@@ -109,7 +106,6 @@ export const createOrder = async (req: Request, res: Response) => {
 };
 
 // Get all orders
-
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
     const {
@@ -121,16 +117,11 @@ export const getAllOrders = async (req: Request, res: Response) => {
       endDate,
     } = req.query;
 
-    // Pagination setup
     const pageNumber = parseInt(page as string, 10) || 1;
     const pageSize = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * pageSize;
 
     let filter: any = {};
-
-    // -----------------------------
-    // MR Name Filter
-    // -----------------------------
     if (mrName && mrName !== "All") {
       filter.$or = [
         { mrName: mrName },
@@ -143,10 +134,6 @@ export const getAllOrders = async (req: Request, res: Response) => {
         },
       ];
     }
-
-    // -----------------------------
-    // Date Filter (Exact Date)
-    // -----------------------------
     if (date) {
       const dayStart = new Date(date as string);
       dayStart.setHours(0, 0, 0, 0);
@@ -155,10 +142,6 @@ export const getAllOrders = async (req: Request, res: Response) => {
 
       filter.createdAt = { $gte: dayStart, $lte: dayEnd };
     }
-
-    // -----------------------------
-    // Date Range Filter (Start Date - End Date)
-    // -----------------------------
     if (startDate && endDate) {
       const start = new Date(startDate as string);
       start.setHours(0, 0, 0, 0);
@@ -168,26 +151,15 @@ export const getAllOrders = async (req: Request, res: Response) => {
       filter.createdAt = { $gte: start, $lte: end };
     }
 
-    // -----------------------------
-    // Total Count of Filtered Orders
-    // -----------------------------
     const totalItems = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / pageSize);
-
-    // -----------------------------
-    // Fetch Orders with Pagination and Population
-    // -----------------------------
     const orders = await Order.find(filter)
-      .sort({ createdAt: -1 }) // Sort by creation date, newest first
-      .skip(skip) // Skip the previous pages based on pagination
-      .limit(pageSize) // Limit the number of orders per page
-      .populate("medicines.medicineId") // Populate medicineId with full Product data
-      .populate("mrName", "name") // Populate the MR name
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .populate("medicines.medicineId")
+      .populate("mrName", "name")
       .exec();
-
-    // -----------------------------
-    // Return the Response
-    // -----------------------------
     res.status(200).json({
       success: true,
       page: pageNumber,
@@ -207,18 +179,13 @@ export const getAllOrders = async (req: Request, res: Response) => {
 // Get single order by ID
 export const getOrderById = async (req: Request, res: Response) => {
   try {
-    // Fetch the order by its ID and populate the medicine references
     const order = await Order.findById(req.params.id)
-      .populate("medicines.medicineId") // Populate medicineId with full Product data
-      .populate("mrName", "name") // Populate MR Name (assuming it's a reference to Admin)
+      .populate("medicines.medicineId")
+      .populate("mrName", "name")
       .exec();
-
-    // Check if the order exists
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
-
-    // Return the populated order
     res.status(200).json({
       success: true,
       message: "Order fetched successfully",
@@ -241,8 +208,6 @@ export const updateOrder = async (req: Request, res: Response) => {
     const updatePayload: any = {
       ...rest,
     };
-
-    // Only update medicines if provided
     if (medicines && Array.isArray(medicines)) {
       updatePayload.medicines = medicines;
     }

@@ -20,17 +20,14 @@ const uploadController = {
       const fileType = (req.query.fileType as string) || "assets";
       const file = req.file;
       const fileName = `${uuidv4()}-${file.originalname}`;
-
-      // Convert buffer to base64
       const base64String = `data:${file.mimetype};base64,${file.buffer.toString(
         "base64"
       )}`;
 
-      // Upload to Cloudinary
       const result = await cloudinary.uploader.upload(base64String, {
         folder: `MedRep/${fileType}`,
         public_id: fileName,
-        resource_type: "auto", // automatically detect image/video/pdf
+        resource_type: "auto",
       });
 
       return res.status(200).json({
