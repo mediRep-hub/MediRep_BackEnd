@@ -4,7 +4,7 @@ import Admin from "../models/admin";
 import Product from "../models/productModel";
 import { validateOrderData } from "../validations/orderValidation";
 import mongoose from "mongoose";
-
+import Pharmacy from "../models/phramacyModel";
 // Generate auto-incremented Order ID
 const generateOrderId = async (): Promise<string> => {
   const lastOrder = await Order.findOne().sort({ createdAt: -1 });
@@ -27,8 +27,28 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     const newOrderId = await generateOrderId();
-    const { medicines, discount = 0, ...rest } = req.body;
+    const { medicines, discount = 0, pharmacyId, ...rest } = req.body;
 
+    // ----------------------------
+    // ✅ Pharmacy Validation
+    // ----------------------------
+    if (!pharmacyId) {
+      return res.status(400).json({ message: "pharmacyId is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(pharmacyId)) {
+      return res.status(400).json({ message: "Invalid pharmacyId" });
+    }
+
+    const pharmacy = await Pharmacy.findById(pharmacyId);
+
+    if (!pharmacy) {
+      return res.status(400).json({ message: "Pharmacy not found" });
+    }
+
+    // ----------------------------
+    // Medicines Validation
+    // ----------------------------
     if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
       return res.status(400).json({ message: "Medicines are required" });
     }
@@ -67,12 +87,12 @@ export const createOrder = async (req: Request, res: Response) => {
       const priceAtOrder = product.amount;
       calculatedSubtotal += qty * priceAtOrder;
       med.priceAtOrder = priceAtOrder;
+
+      // Update achievement
       await Product.updateOne(
         { _id: medicineId },
         { $inc: { achievement: qty } }
       );
-
-      console.log(`Achievement Updated → ${product.productName}: +${qty}`);
     }
 
     const total = calculatedSubtotal - calculatedSubtotal * (discount / 100);
@@ -84,12 +104,15 @@ export const createOrder = async (req: Request, res: Response) => {
       subtotal: calculatedSubtotal,
       total,
       discount,
+      pharmacyId, // <-- Save pharmacyId in order
     });
 
     await newOrder.save();
 
+    // Populate pharmacy + medicines
     const populatedOrder = await Order.findById(newOrder._id)
       .populate("medicines.medicineId")
+      .populate("pharmacyId") // <-- VERY IMPORTANT
       .exec();
 
     return res.status(201).json({
@@ -97,7 +120,7 @@ export const createOrder = async (req: Request, res: Response) => {
       data: populatedOrder,
     });
   } catch (error: any) {
-    console.error(error);
+    console.error("Create Order Error:", error);
     return res.status(500).json({
       message: "Error creating order",
       error: error.message,
@@ -105,7 +128,10 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
-// Get all orders
+// =======================================================
+// 🟦 GET ALL ORDERS — POPULATE pharmacyId ALSO ADDED
+// =======================================================
+
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
     const {
@@ -122,6 +148,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const skip = (pageNumber - 1) * pageSize;
 
     let filter: any = {};
+
     if (mrName && mrName !== "All") {
       filter.$or = [
         { mrName: mrName },
@@ -134,17 +161,19 @@ export const getAllOrders = async (req: Request, res: Response) => {
         },
       ];
     }
+
     if (date) {
       const dayStart = new Date(date as string);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(date as string);
       dayEnd.setHours(23, 59, 59, 999);
-
       filter.createdAt = { $gte: dayStart, $lte: dayEnd };
     }
+
     if (startDate && endDate) {
       const start = new Date(startDate as string);
       start.setHours(0, 0, 0, 0);
+
       const end = new Date(endDate as string);
       end.setHours(23, 59, 59, 999);
 
@@ -153,13 +182,16 @@ export const getAllOrders = async (req: Request, res: Response) => {
 
     const totalItems = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / pageSize);
+
     const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize)
       .populate("medicines.medicineId")
       .populate("mrName", "name")
+      .populate("pharmacyId", "name location address lat lng") // <-- POPULATE PHARMACY FULL DATA
       .exec();
+
     res.status(200).json({
       success: true,
       page: pageNumber,
