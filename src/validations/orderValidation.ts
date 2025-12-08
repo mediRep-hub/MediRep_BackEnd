@@ -20,6 +20,10 @@ export const validateOrderData = (data: any) => {
       "string.empty": "MR Name cannot be empty",
       "any.required": "MR Name is required",
     }),
+    distributorName: Joi.string().required().messages({
+      "string.empty": "Distributor Name cannot be empty",
+      "any.required": "Distributor Name is required",
+    }),
 
     pharmacyId: Joi.string().pattern(objectIdRegex).required().messages({
       "any.required": "Pharmacy ID is required",

@@ -189,7 +189,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
       .limit(pageSize)
       .populate("medicines.medicineId")
       .populate("mrName", "name")
-      .populate("pharmacyId", "name location address lat lng") // <-- POPULATE PHARMACY FULL DATA
+      .populate("pharmacyId", "name location address lat lng")
       .exec();
 
     res.status(200).json({
