@@ -58,14 +58,9 @@ export const validateRequisitionData = (data: any) => {
     totalQuantity: Joi.number().optional(),
     duration: Joi.string().optional(),
 
-    requisitionType: Joi.string()
-      .valid("cash", "other", "house", "car", "tour")
-      .required()
-      .messages({
-        "any.only":
-          "Requisition type must be one of cash, other, house, car, tour",
-        "any.required": "Requisition type is required",
-      }),
+    requisitionType: Joi.string().required().messages({
+      "any.required": "Requisition type is required",
+    }),
 
     amount: Joi.number().when("requisitionType", {
       is: "cash",

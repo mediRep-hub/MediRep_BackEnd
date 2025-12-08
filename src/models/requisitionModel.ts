@@ -53,7 +53,6 @@ const RequisitionSchema: Schema<IRequisition> = new Schema(
     accepted: { type: Boolean, default: false },
     requisitionType: {
       type: String,
-      enum: ["cash", "other", "house", "car", "tour"],
       required: true,
     },
     amount: {
