@@ -5,6 +5,8 @@ const generateShortId = () => {
   return `CALL-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 };
 
+// ---------------- SUB DOCUMENT ----------------
+
 export interface IDoctorSubDoc extends Document {
   doctor: Types.ObjectId;
   callId: string;
@@ -27,10 +29,10 @@ export interface IDoctorSubDoc extends Document {
   reason: string;
 }
 
-export interface ICallReporting extends Document {
+export interface IBrick extends Document {
   region: string;
   area: string;
-  strategyName: string;
+  brickName: string;
   route: string;
   day: string;
   mrName: Types.ObjectId;
@@ -39,12 +41,12 @@ export interface ICallReporting extends Document {
   updatedAt: Date;
 }
 
-// --- Model interface including static method ---
-export interface ICallReportingModel extends Model<ICallReporting> {
+export interface IBrickModel extends Model<IBrick> {
   prepareDoctorList(doctorIds: string[]): IDoctorSubDoc[];
 }
 
-// Doctor sub-schema
+// ---------------- SUB SCHEMA ----------------
+
 const doctorSubSchema = new Schema<IDoctorSubDoc>({
   doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
   callId: { type: String, default: generateShortId, required: true },
@@ -74,12 +76,13 @@ const doctorSubSchema = new Schema<IDoctorSubDoc>({
   reason: { type: String, default: "" },
 });
 
-// Main schema
-const callReportingSchema = new Schema<ICallReporting>(
+// ---------------- MAIN SCHEMA (Brick) ----------------
+
+const brickSchema = new Schema<IBrick>(
   {
     region: { type: String },
     area: { type: String },
-    strategyName: { type: String },
+    brickName: { type: String },
     route: { type: String },
     day: { type: String },
     mrName: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
@@ -88,8 +91,9 @@ const callReportingSchema = new Schema<ICallReporting>(
   { timestamps: true }
 );
 
-// --- Static method ---
-callReportingSchema.statics.prepareDoctorList = function (doctorIds: string[]) {
+// ---------------- STATIC METHOD ----------------
+
+brickSchema.statics.prepareDoctorList = function (doctorIds: string[]) {
   return doctorIds.map((id) => ({
     doctor: new Types.ObjectId(id),
     callId: `CALL-${uuidv4()}`,
@@ -113,10 +117,8 @@ callReportingSchema.statics.prepareDoctorList = function (doctorIds: string[]) {
   }));
 };
 
-// --- Create model ---
-const CallReporting = mongoose.model<ICallReporting, ICallReportingModel>(
-  "CallReporting",
-  callReportingSchema
-);
+// ---------------- MODEL ----------------
 
-export default CallReporting;
+const Brick = mongoose.model<IBrick, IBrickModel>("Brick", brickSchema);
+
+export default Brick;

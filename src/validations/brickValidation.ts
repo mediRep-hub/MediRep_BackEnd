@@ -25,7 +25,7 @@ export const validateAddCallReport = (data: any) => {
     region: Joi.string().optional(),
     area: Joi.string().optional(),
     route: Joi.string().optional(),
-    strategyName: Joi.string().optional(),
+    brickName: Joi.string().optional(),
     day: Joi.string().optional(),
     remarks: Joi.string().optional(),
     date: Joi.date().optional(),

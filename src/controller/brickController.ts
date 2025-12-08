@@ -1,4 +1,4 @@
-import CallReporting from "../models/callReportingModel";
+import CallReporting from "../models/brickModel";
 import Doctor from "../models/doctorModel";
 import Admin from "../models/admin";
 import mongoose from "mongoose";
@@ -6,7 +6,7 @@ import { Request, Response } from "express";
 import {
   validateAddCallReport,
   validateCheckLocation,
-} from "../validations/callReportingValidation";
+} from "../validations/brickValidation";
 
 interface CheckLocationBody {
   callReportId: string;
@@ -16,7 +16,7 @@ interface CheckLocationBody {
 }
 
 // ✅ Add / Create call report
-export const addCallReport = async (req, res) => {
+export const addBrick = async (req, res) => {
   const { error } = validateAddCallReport(req.body);
   if (error) {
     return res.status(400).json({
@@ -76,7 +76,7 @@ export const addCallReport = async (req, res) => {
 };
 
 // 🟢 Get all call reports with pagination
-export const getAllCallReports = async (req: Request, res: Response) => {
+export const getAllBricks = async (req: Request, res: Response) => {
   try {
     const {
       mrName,
@@ -190,7 +190,7 @@ export const getAllCallReports = async (req: Request, res: Response) => {
 };
 
 // ✅ Delete call report by ID
-export const deleteCallReport = async (req, res) => {
+export const deleteBrick = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -199,11 +199,11 @@ export const deleteCallReport = async (req, res) => {
     if (!deletedReport)
       return res
         .status(404)
-        .json({ success: false, message: "Call report not found" });
+        .json({ success: false, message: "Brick not found" });
 
     res
       .status(200)
-      .json({ success: true, message: "Call report deleted successfully" });
+      .json({ success: true, message: "Brick deleted successfully" });
   } catch (error) {
     console.error("Error deleting call report:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -211,7 +211,7 @@ export const deleteCallReport = async (req, res) => {
 };
 // ✅ Update call report by ID
 
-export const updateCallReport = async (req, res) => {
+export const updateBrick = async (req, res) => {
   const { error } = validateAddCallReport(req.body);
   if (error) {
     return res.status(400).json({
@@ -237,7 +237,7 @@ export const updateCallReport = async (req, res) => {
     if (!callReport) {
       return res
         .status(404)
-        .json({ success: false, message: "Call report not found" });
+        .json({ success: false, message: "Brick not found" });
     }
     const existingDoctorIds = callReport.doctorList.map((d) =>
       d.doctor.toString()
@@ -261,7 +261,7 @@ export const updateCallReport = async (req, res) => {
 
     res.status(200).json({ success: true, data: callReport });
   } catch (error) {
-    console.error("Error updating call report doctors:", error);
+    console.error("Error updating Brick doctors:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -286,7 +286,7 @@ export const reorderDoctorList = async (req, res) => {
     if (!callReport) {
       return res
         .status(404)
-        .json({ success: false, message: "Call report not found." });
+        .json({ success: false, message: "Brick not found." });
     }
 
     const doctorMap = new Map(
@@ -365,7 +365,7 @@ export const checkDoctorLocation = async (
     if (!callReport) {
       return res
         .status(404)
-        .json({ success: false, message: "Call report not found" });
+        .json({ success: false, message: "Brick not found" });
     }
 
     const doctorEntry = callReport.doctorList.find(
@@ -375,7 +375,7 @@ export const checkDoctorLocation = async (
     if (!doctorEntry) {
       return res
         .status(404)
-        .json({ success: false, message: "Doctor not found in call report" });
+        .json({ success: false, message: "Doctor not found in Brick" });
     }
 
     const doctorLat = (doctorEntry.doctor as any).location.lat;

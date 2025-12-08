@@ -6,7 +6,7 @@ import dbConnect from "../src/database";
 import adminRouter from "../src/routes/admin.js";
 import doctorRouter from "../src/routes/doctorRoute.js";
 import productRoutes from "../src/routes/productRoute.js";
-import callReportingRoutes from "../src/routes/callReportingRoute.js";
+import callBrickRoutes from "../src/routes/brickRoute.js";
 import requisitionRoutes from "../src/routes/requisitionRoute.js";
 import pharmacyRoutes from "../src/routes/pharmacyRoutes";
 import uploadFileRoutes from "../src/routes/uploadRoute.js";
@@ -48,7 +48,7 @@ app.get("/", (_req, res) => {
 app.use("/admin", adminRouter);
 app.use("/doctor", doctorRouter);
 app.use("/product", productRoutes);
-app.use("/callreport", callReportingRoutes);
+app.use("/brick", callBrickRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
