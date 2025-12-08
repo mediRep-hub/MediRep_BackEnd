@@ -17,12 +17,9 @@ declare module "express" {
 }
 
 const adminAuthController = {
-  // 🧾 REGISTER
   async register(req: Request, res: Response, next: NextFunction) {
     const adminRegisterSchema = Joi.object({
-      name: Joi.string().required().messages({
-        "any.required": "Name is required",
-      }),
+      name: Joi.string().required(),
 
       phoneNumber: Joi.string().required(),
       email: Joi.string().email().required(),
@@ -34,12 +31,19 @@ const adminAuthController = {
         .valid(Joi.ref("password"))
         .required()
         .messages({ "any.only": "Passwords do not match" }),
+
       image: Joi.string().optional(),
       division: Joi.string().required(),
       area: Joi.string().required(),
       region: Joi.string().required(),
       strategy: Joi.string().required(),
       position: Joi.string().required(),
+
+      ownerName: Joi.string().when("division", {
+        is: "Distributor",
+        then: Joi.required(),
+        otherwise: Joi.optional(),
+      }),
     });
 
     const { error } = adminRegisterSchema.validate(req.body);
@@ -56,10 +60,10 @@ const adminAuthController = {
       region,
       strategy,
       position,
+      ownerName,
     } = req.body;
 
     try {
-      // Check if email already exists
       const emailRegex = new RegExp(email, "i");
       const emailExists = await Admin.findOne({
         email: { $regex: emailRegex },
@@ -67,10 +71,7 @@ const adminAuthController = {
       if (emailExists)
         return next({ status: 409, message: "Email already registered" });
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Generate unique adminId based on position
       const generateAdminId = async (position: string) => {
         const initials = position
           .split(" ")
@@ -106,6 +107,7 @@ const adminAuthController = {
         region,
         strategy,
         position,
+        ownerName,
       });
 
       const admin = await adminToRegister.save();
@@ -235,7 +237,7 @@ const adminAuthController = {
         email: { $ne: "SuperAdmin@gmail.com" },
       })
         .select(
-          "adminId name email phoneNumber division area region strategy position image"
+          "adminId name email phoneNumber division ownerName area region strategy position image"
         )
         .skip(skip)
         .limit(limit)
@@ -268,6 +270,7 @@ const adminAuthController = {
       region,
       strategy,
       position,
+      ownerName,
     } = req.body;
 
     try {
@@ -280,17 +283,40 @@ const adminAuthController = {
         return next({ status: 404, message: "Account not found" });
       }
 
-      // Update fields
+      // -----------------------------
+      // Update normal fields
+      // -----------------------------
       if (name) admin.name = name;
       if (phoneNumber) admin.phoneNumber = phoneNumber;
       if (email) admin.email = email;
       if (image) admin.image = image;
-      if (division) admin.division = division;
       if (area) admin.area = area;
       if (region) admin.region = region;
       if (strategy) admin.strategy = strategy;
       if (position) admin.position = position;
 
+      // -----------------------------
+      // Handle Division + OwnerName Logic
+      // -----------------------------
+      if (division) {
+        admin.division = division;
+
+        if (division === "Distributor") {
+          if (!ownerName) {
+            return next({
+              status: 400,
+              message: "Owner Name is required for Distributor division",
+            });
+          }
+          admin.ownerName = ownerName;
+        } else {
+          admin.ownerName = ""; // Clear when division is NOT Distributor
+        }
+      }
+
+      // -----------------------------
+      // Password Update
+      // -----------------------------
       if (password) {
         if (password !== confirmPassword) {
           return next({ status: 400, message: "Passwords do not match" });
@@ -298,6 +324,7 @@ const adminAuthController = {
         admin.password = await bcrypt.hash(password, 10);
       }
 
+      // Save updated admin
       const updatedAdmin = await admin.save();
       const { password: _, ...adminSafe } = updatedAdmin.toObject();
 
