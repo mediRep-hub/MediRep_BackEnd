@@ -1,61 +1,44 @@
 import Product from "../models/productModel";
 import { Request, Response } from "express";
+import csv from "csv-parser";
 import { Order } from "../models/orderModel";
 import { validateProductData } from "../validations/validateProductData";
-
-// -----------------------------------------
-// Add Product
-// -----------------------------------------
+// Add new product
 export const addProduct = async (req: Request, res: Response) => {
   const { error } = validateProductData(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }
-
   try {
-    // 🔒 Ensure discount array always includes RT
-    if (!req.body.discount) {
-      req.body.discount = [
-        { channel: "RT", percent: 0 },
-        { channel: "Local Modern Trade", percent: 0 },
-        { channel: "Wholesale", percent: 0 },
-      ];
-    } else {
-      const hasRT = req.body.discount.some((d: any) => d.channel === "RT");
-      if (!hasRT) req.body.discount.push({ channel: "RT", percent: 0 });
-    }
-
     const product = new Product(req.body);
     await product.save();
-
     res.status(201).json({ success: true, data: product });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// -----------------------------------------
-// Get All Products (with Filters / Pagination)
-// -----------------------------------------
+// Get all products
+// Get all products with pagination
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const { sku, productName, page = "1", limit = "10" } = req.query;
 
     const filter: any = {};
-
-    if (sku) filter.sku = { $regex: new RegExp(sku as string, "i") };
-    if (productName)
+    if (sku) {
+      filter.sku = { $regex: new RegExp(sku as string, "i") };
+    }
+    if (productName) {
       filter.productName = { $regex: new RegExp(productName as string, "i") };
+    }
 
-    const pageNumber = parseInt(page as string, 10);
-    const itemsPerPage = parseInt(limit as string, 10);
-
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const itemsPerPage = parseInt(limit as string, 10) || 10;
     const totalItems = await Product.countDocuments(filter);
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * itemsPerPage)
       .limit(itemsPerPage);
-
     const categoryStats = await Product.aggregate([
       {
         $group: {
@@ -88,7 +71,6 @@ export const getAllProducts = async (req: Request, res: Response) => {
       },
       { $sort: { name: 1 } },
     ]);
-
     const totalStats = await Product.aggregate([
       {
         $group: {
@@ -139,52 +121,30 @@ export const getAllProducts = async (req: Request, res: Response) => {
   }
 };
 
-// -----------------------------------------
-// Update Product (Ensuring RT stays constant)
-// -----------------------------------------
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-
-    // Ensure discount exists
-    if (req.body.discount) {
-      const hasRT = req.body.discount.some((d: any) => d.channel === "RT");
-      if (!hasRT) {
-        req.body.discount.push({ channel: "RT", percent: 0 });
-      }
-    }
-
     const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {
       new: true,
     });
-
-    if (!updatedProduct) {
+    if (!updatedProduct)
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
-    }
-
     res.status(200).json({ success: true, data: updatedProduct });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// -----------------------------------------
-// Delete Product
-// -----------------------------------------
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-
     const deletedProduct = await Product.findByIdAndDelete(id);
-
-    if (!deletedProduct) {
+    if (!deletedProduct)
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
-    }
-
     res
       .status(200)
       .json({ success: true, message: "Product deleted successfully" });
@@ -192,10 +152,6 @@ export const deleteProduct = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// -----------------------------------------
-// CSV Bulk Update Target
-// -----------------------------------------
 export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
   try {
     const results = req.body.data;
@@ -221,9 +177,6 @@ export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
   }
 };
 
-// -----------------------------------------
-// Monthly Achievement
-// -----------------------------------------
 export const getMonthlyAchievement = async (req: Request, res: Response) => {
   try {
     const orders = await Order.find({}).lean();
@@ -304,47 +257,5 @@ export const getMonthlyAchievement = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const uploadDiscountCSV = async (req: Request, res: Response) => {
-  try {
-    const results = req.body.data;
-
-    if (!results || !Array.isArray(results) || results.length === 0) {
-      return res.status(400).json({ message: "No data found in request" });
-    }
-
-    const updatedProducts: any[] = [];
-
-    for (const row of results) {
-      const { SKU, ...discountData } = row;
-      if (!SKU) continue;
-
-      // Fetch product
-      const product = await Product.findOne({ sku: SKU });
-      if (!product) continue;
-
-      product.discount.forEach((d) => {
-        if (discountData[d.channel] !== undefined) {
-          d.percent = Number(discountData[d.channel]);
-        }
-      });
-
-      await product.save();
-      updatedProducts.push({ sku: SKU, updated: true });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Discounts updated successfully",
-      updatedCount: updatedProducts.length,
-      data: updatedProducts,
-    });
-  } catch (error: any) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ success: false, message: "Discount update failed", error });
   }
 };
