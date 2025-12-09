@@ -9,6 +9,7 @@ export interface IPharmacy extends Document {
   endTime: string;
   region: string;
   area: string;
+  channel: string;
   affiliation: string;
   image: string;
 
@@ -32,6 +33,7 @@ const PharmacySchema: Schema = new Schema(
     area: { type: String, required: true },
     affiliation: { type: String, required: true },
     image: { type: String, required: true },
+    channel: { type: String, required: true },
     location: {
       address: { type: String, required: true },
       lat: { type: Number, required: true },

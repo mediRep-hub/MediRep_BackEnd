@@ -41,6 +41,7 @@ export const addPharmacy = async (req: Request, res: Response) => {
       area,
       affiliation,
       profileType,
+      channel,
       image,
       location,
     } = req.body;
@@ -66,6 +67,7 @@ export const addPharmacy = async (req: Request, res: Response) => {
       startTime,
       endTime,
       region,
+      channel,
       area,
       affiliation,
       profileType,
@@ -274,6 +276,7 @@ export const uploadCSVPharmacy = async (req, res) => {
           email: r.email || r.Email || "",
           phone: r.phone || r.Phone || "",
           startTime: r.startTime || r.StartTime || "",
+          channel: r.channel || r.Channel || "",
           endTime: r.endTime || r.EndTime || "",
           region: r.region || r.Region || "",
           area: r.area || r.Area || "",
