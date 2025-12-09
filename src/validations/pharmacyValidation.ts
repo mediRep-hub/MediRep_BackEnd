@@ -14,6 +14,9 @@ export const validatePharmacyData = (data: any) => {
     phone: Joi.string().optional().allow("").messages({
       "string.base": "Phone must be a string",
     }),
+    channel: Joi.string().optional().allow("").messages({
+      "string.base": "channel must be a string",
+    }),
     startTime: Joi.string()
       .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
       .optional()
