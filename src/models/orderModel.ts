@@ -9,9 +9,10 @@ export interface IOrder extends Document {
   subtotal: number;
   discount: number;
   total: number;
+  distributorName: string;
+  IStatus?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
-  distributorName: string;
 }
 
 const orderSchema = new mongoose.Schema<IOrder>(
@@ -38,6 +39,9 @@ const orderSchema = new mongoose.Schema<IOrder>(
     subtotal: { type: Number, required: true },
     discount: { type: Number, required: true },
     total: { type: Number, required: true },
+
+    // 👇 Add this new field
+    IStatus: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

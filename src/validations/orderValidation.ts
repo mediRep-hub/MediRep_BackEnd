@@ -41,8 +41,9 @@ export const validateOrderData = (data: any) => {
       "array.min": "At least one medicine is required",
     }),
 
-    discount: Joi.number().required().messages({
-      "any.required": "Discount is required",
+    discount: Joi.number().min(0).default(0).messages({
+      "number.base": "Discount must be a number",
+      "number.min": "Discount cannot be negative",
     }),
   });
 

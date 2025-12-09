@@ -29,9 +29,7 @@ export const createOrder = async (req: Request, res: Response) => {
     const newOrderId = await generateOrderId();
     const { medicines, discount = 0, pharmacyId, ...rest } = req.body;
 
-    // ----------------------------
-    // ✅ Pharmacy Validation
-    // ----------------------------
+    // Validate pharmacyId
     if (!pharmacyId) {
       return res.status(400).json({ message: "pharmacyId is required" });
     }
@@ -41,15 +39,12 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     const pharmacy = await Pharmacy.findById(pharmacyId);
-
     if (!pharmacy) {
       return res.status(400).json({ message: "Pharmacy not found" });
     }
 
-    // ----------------------------
     // Medicines Validation
-    // ----------------------------
-    if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
+    if (!Array.isArray(medicines) || medicines.length === 0) {
       return res.status(400).json({ message: "Medicines are required" });
     }
 
@@ -60,7 +55,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
       if (!medicineId || !quantity) {
         return res.status(400).json({
-          message: "Each medicine must have a medicineId and quantity",
+          message: "Each medicine must have medicineId & quantity",
         });
       }
 
@@ -73,30 +68,42 @@ export const createOrder = async (req: Request, res: Response) => {
       const product = await Product.findById(medicineId);
       if (!product) {
         return res.status(400).json({
-          message: `Medicine with ID ${medicineId} does not exist`,
+          message: `Medicine not found for ID: ${medicineId}`,
         });
       }
 
       const qty = Number(quantity);
-      if (isNaN(qty)) {
+
+      if (isNaN(qty) || qty <= 0) {
         return res.status(400).json({
           message: `Invalid quantity for medicineId: ${medicineId}`,
         });
       }
 
+      // Save price at order time
       const priceAtOrder = product.amount;
-      calculatedSubtotal += qty * priceAtOrder;
       med.priceAtOrder = priceAtOrder;
 
-      // Update achievement
+      calculatedSubtotal += qty * priceAtOrder;
+
+      // Increase achievement
       await Product.updateOne(
         { _id: medicineId },
         { $inc: { achievement: qty } }
       );
     }
 
-    const total = calculatedSubtotal - calculatedSubtotal * (discount / 100);
+    // Total Calculation
+    const total =
+      discount > 0
+        ? calculatedSubtotal - calculatedSubtotal * (discount / 100)
+        : calculatedSubtotal;
 
+    // Discount Status Logic
+    const isStatus = discount > 0 ? false : true;
+    const status = discount > 0 ? "Discount Applied" : "Normal";
+
+    // Create Order
     const newOrder = new Order({
       ...rest,
       orderId: newOrderId,
@@ -104,15 +111,17 @@ export const createOrder = async (req: Request, res: Response) => {
       subtotal: calculatedSubtotal,
       total,
       discount,
-      pharmacyId, // <-- Save pharmacyId in order
+      pharmacyId,
+      status,
+      isStatus, // <-- IMPORTANT (true = no discount, false = discount applied)
     });
 
     await newOrder.save();
 
-    // Populate pharmacy + medicines
+    // Populate
     const populatedOrder = await Order.findById(newOrder._id)
       .populate("medicines.medicineId")
-      .populate("pharmacyId") // <-- VERY IMPORTANT
+      .populate("pharmacyId")
       .exec();
 
     return res.status(201).json({
@@ -141,6 +150,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
       date,
       startDate,
       endDate,
+      status, // optional query param: "pending" to get only pending orders
     } = req.query;
 
     const pageNumber = parseInt(page as string, 10) || 1;
@@ -149,19 +159,19 @@ export const getAllOrders = async (req: Request, res: Response) => {
 
     let filter: any = {};
 
+    // Filter by MR name
     if (mrName && mrName !== "All") {
-      filter.$or = [
-        { mrName: mrName },
-        {
-          mrName: {
-            $in: (
-              await Admin.find({ name: { $regex: mrName, $options: "i" } })
-            ).map((m) => m._id),
-          },
-        },
-      ];
+      const mrDocs = await Admin.find({
+        name: { $regex: mrName, $options: "i" },
+        position: "MedicalRep(MR)",
+      });
+
+      const mrIds = mrDocs.map((m) => m._id);
+
+      filter.mrName = { $in: mrIds };
     }
 
+    // Filter by single date
     if (date) {
       const dayStart = new Date(date as string);
       dayStart.setHours(0, 0, 0, 0);
@@ -170,19 +180,24 @@ export const getAllOrders = async (req: Request, res: Response) => {
       filter.createdAt = { $gte: dayStart, $lte: dayEnd };
     }
 
+    // Filter by date range
     if (startDate && endDate) {
       const start = new Date(startDate as string);
       start.setHours(0, 0, 0, 0);
-
       const end = new Date(endDate as string);
       end.setHours(23, 59, 59, 999);
-
       filter.createdAt = { $gte: start, $lte: end };
     }
 
+    // Filter by status (pending only)
+    if (status === "pending") filter.IStatus = false;
+    else if (status === "approved") filter.IStatus = true;
+
+    // Total count for pagination
     const totalItems = await Order.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / pageSize);
 
+    // Fetch orders with pagination
     const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -207,7 +222,6 @@ export const getAllOrders = async (req: Request, res: Response) => {
     });
   }
 };
-
 // Get single order by ID
 export const getOrderById = async (req: Request, res: Response) => {
   try {
