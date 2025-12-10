@@ -37,7 +37,7 @@ const orderSchema = new mongoose.Schema<IOrder>(
       },
     ],
     subtotal: { type: Number, required: true },
-    discount: { type: Number, required: true },
+    discount: { type: Number },
     total: { type: Number, required: true },
 
     // 👇 Add this new field

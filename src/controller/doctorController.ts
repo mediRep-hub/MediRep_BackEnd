@@ -118,7 +118,13 @@ export const addDoctor = async (req: Request, res: Response) => {
 // ✅ Get all doctors
 export const getAllDoctorslist = async (req: Request, res: Response) => {
   try {
-    const doctors = await Doctor.find().sort({ createdAt: -1 });
+    const { area } = req.query; // get area from query params
+    const filter: any = {};
+    if (area && area !== "All") {
+      filter.area = area; // filter by area if provided
+    }
+
+    const doctors = await Doctor.find(filter).sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       count: doctors.length,
@@ -132,7 +138,6 @@ export const getAllDoctorslist = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Get all doctors with pagination
 export const getAllDoctors = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -161,7 +166,6 @@ export const getAllDoctors = async (req: Request, res: Response) => {
   }
 };
 
-// ✅ Get single doctor by ID
 export const getDoctorById = async (req: Request, res: Response) => {
   try {
     const doctor = await Doctor.findById(req.params.id);

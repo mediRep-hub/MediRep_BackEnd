@@ -27,83 +27,84 @@ export const createOrder = async (req: Request, res: Response) => {
     }
 
     const newOrderId = await generateOrderId();
-    const { medicines, discount = 0, pharmacyId, ...rest } = req.body;
+    const {
+      medicines,
+      pharmacyId,
+      discount: requestDiscount,
+      ...rest
+    } = req.body;
 
     // Validate pharmacyId
-    if (!pharmacyId) {
+    if (!pharmacyId)
       return res.status(400).json({ message: "pharmacyId is required" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(pharmacyId)) {
+    if (!mongoose.Types.ObjectId.isValid(pharmacyId))
       return res.status(400).json({ message: "Invalid pharmacyId" });
-    }
 
     const pharmacy = await Pharmacy.findById(pharmacyId);
-    if (!pharmacy) {
+    if (!pharmacy)
       return res.status(400).json({ message: "Pharmacy not found" });
-    }
 
-    // Medicines Validation
-    if (!Array.isArray(medicines) || medicines.length === 0) {
+    // Validate medicines
+    if (!Array.isArray(medicines) || medicines.length === 0)
       return res.status(400).json({ message: "Medicines are required" });
-    }
 
     let calculatedSubtotal = 0;
-
     for (let med of medicines) {
       const { medicineId, quantity } = med;
-
-      if (!medicineId || !quantity) {
-        return res.status(400).json({
-          message: "Each medicine must have medicineId & quantity",
-        });
-      }
-
-      if (!mongoose.Types.ObjectId.isValid(medicineId)) {
-        return res.status(400).json({
-          message: `Invalid medicineId: ${medicineId}`,
-        });
-      }
+      if (!medicineId || !quantity)
+        return res
+          .status(400)
+          .json({ message: "Each medicine must have medicineId & quantity" });
+      if (!mongoose.Types.ObjectId.isValid(medicineId))
+        return res
+          .status(400)
+          .json({ message: `Invalid medicineId: ${medicineId}` });
 
       const product = await Product.findById(medicineId);
-      if (!product) {
-        return res.status(400).json({
-          message: `Medicine not found for ID: ${medicineId}`,
-        });
-      }
+      if (!product)
+        return res
+          .status(400)
+          .json({ message: `Medicine not found for ID: ${medicineId}` });
 
       const qty = Number(quantity);
+      if (isNaN(qty) || qty <= 0)
+        return res
+          .status(400)
+          .json({ message: `Invalid quantity for medicineId: ${medicineId}` });
 
-      if (isNaN(qty) || qty <= 0) {
-        return res.status(400).json({
-          message: `Invalid quantity for medicineId: ${medicineId}`,
-        });
-      }
+      med.priceAtOrder = product.amount;
+      calculatedSubtotal += qty * product.amount;
 
-      // Save price at order time
-      const priceAtOrder = product.amount;
-      med.priceAtOrder = priceAtOrder;
-
-      calculatedSubtotal += qty * priceAtOrder;
-
-      // Increase achievement
+      // Increase product achievement
       await Product.updateOne(
         { _id: medicineId },
         { $inc: { achievement: qty } }
       );
     }
 
-    // Total Calculation
+    // Determine discount
+    let discount = Number(requestDiscount ?? 0); // Use request discount first
+    if (!discount && pharmacy.discount?.value) {
+      const now = new Date();
+      if (!pharmacy.discount.endDate || pharmacy.discount.endDate > now) {
+        discount = pharmacy.discount.value;
+        if (pharmacy.discount.duration && pharmacy.discount.duration > 0) {
+          pharmacy.discount.duration -= 1;
+          await pharmacy.save();
+        }
+      }
+    }
+
+    // Total calculation
     const total =
       discount > 0
         ? calculatedSubtotal - calculatedSubtotal * (discount / 100)
         : calculatedSubtotal;
 
-    // Discount Status Logic
-    const isStatus = discount > 0 ? false : true;
+    // IStatus logic: if discount is 0 → true, otherwise false
+    const IStatus = discount === 0 ? true : false;
     const status = discount > 0 ? "Discount Applied" : "Normal";
 
-    // Create Order
     const newOrder = new Order({
       ...rest,
       orderId: newOrderId,
@@ -113,33 +114,26 @@ export const createOrder = async (req: Request, res: Response) => {
       discount,
       pharmacyId,
       status,
-      isStatus, // <-- IMPORTANT (true = no discount, false = discount applied)
+      IStatus, // use the calculated IStatus here
     });
 
     await newOrder.save();
 
-    // Populate
     const populatedOrder = await Order.findById(newOrder._id)
       .populate("medicines.medicineId")
       .populate("pharmacyId")
       .exec();
 
-    return res.status(201).json({
-      message: "Order created successfully",
-      data: populatedOrder,
-    });
+    return res
+      .status(201)
+      .json({ message: "Order created successfully", data: populatedOrder });
   } catch (error: any) {
     console.error("Create Order Error:", error);
-    return res.status(500).json({
-      message: "Error creating order",
-      error: error.message,
-    });
+    return res
+      .status(500)
+      .json({ message: "Error creating order", error: error.message });
   }
 };
-
-// =======================================================
-// 🟦 GET ALL ORDERS — POPULATE pharmacyId ALSO ADDED
-// =======================================================
 
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
@@ -167,7 +161,6 @@ export const getAllOrders = async (req: Request, res: Response) => {
       });
 
       const mrIds = mrDocs.map((m) => m._id);
-
       filter.mrName = { $in: mrIds };
     }
 
@@ -204,7 +197,10 @@ export const getAllOrders = async (req: Request, res: Response) => {
       .limit(pageSize)
       .populate("medicines.medicineId")
       .populate("mrName", "name")
-      .populate("pharmacyId", "name location address lat lng")
+      .populate({
+        path: "pharmacyId",
+        select: "name location address lat lng discount", // ✅ include discount from pharmacy
+      })
       .exec();
 
     res.status(200).json({
@@ -222,6 +218,53 @@ export const getAllOrders = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const acceptOrder = async (req: Request, res: Response) => {
+  try {
+    const { orderId, duration, discount } = req.body;
+
+    // Validation
+    if (!orderId)
+      return res.status(400).json({ message: "orderId is required" });
+    if (!duration)
+      return res.status(400).json({ message: "duration is required" });
+    if (!discount && discount !== 0)
+      return res.status(400).json({ message: "discount is required" });
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // Update order status → Accept
+    order.IStatus = true;
+    order.discount = Number(discount); // ✅ order.discount must be Number
+    await order.save();
+
+    const pharmacy = await Pharmacy.findById(order.pharmacyId);
+    if (!pharmacy)
+      return res.status(404).json({ message: "Pharmacy not found" });
+
+    // Update pharmacy discount
+    pharmacy.discount = {
+      value: Number(discount), // from frontend
+      duration: Number(duration),
+      endDate: new Date(
+        new Date().setDate(new Date().getDate() + Number(duration))
+      ),
+    };
+
+    await pharmacy.save();
+
+    return res.status(200).json({
+      message: "Order accepted & pharmacy discount updated",
+      orderStatus: order.IStatus,
+      discountApplied: pharmacy.discount,
+    });
+  } catch (error: any) {
+    console.error("Accept Order Error:", error);
+    return res.status(500).json({ message: "Error", error: error.message });
+  }
+};
+
 // Get single order by ID
 export const getOrderById = async (req: Request, res: Response) => {
   try {

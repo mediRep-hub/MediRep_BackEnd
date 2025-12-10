@@ -11,18 +11,21 @@ export interface IPharmacy extends Document {
   area: string;
   affiliation: string;
   image: string;
-
   location: {
     address: string;
     lat: number;
     lng: number;
+  };
+  discount?: {
+    duration: number; // or string if you prefer
+    value: number;
+    endDate: Date;
   };
 }
 
 const PharmacySchema: Schema = new Schema(
   {
     pharmacyId: { type: String, unique: false },
-
     name: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
@@ -36,6 +39,11 @@ const PharmacySchema: Schema = new Schema(
       address: { type: String, required: true },
       lat: { type: Number, required: true },
       lng: { type: Number, required: true },
+    },
+    discount: {
+      duration: { type: Number, required: false },
+      value: { type: Number, required: false },
+      endDate: { type: Date, required: false },
     },
   },
   { timestamps: true }
