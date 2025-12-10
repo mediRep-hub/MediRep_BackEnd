@@ -5,6 +5,7 @@ import Product from "../models/productModel";
 import { validateOrderData } from "../validations/orderValidation";
 import mongoose from "mongoose";
 import Pharmacy from "../models/phramacyModel";
+import dayjs from "dayjs";
 // Generate auto-incremented Order ID
 const generateOrderId = async (): Promise<string> => {
   const lastOrder = await Order.findOne().sort({ createdAt: -1 });
@@ -245,11 +246,9 @@ export const acceptOrder = async (req: Request, res: Response) => {
 
     // Update pharmacy discount
     pharmacy.discount = {
-      value: Number(discount), // from frontend
+      value: Number(discount),
       duration: Number(duration),
-      endDate: new Date(
-        new Date().setDate(new Date().getDate() + Number(duration))
-      ),
+      endDate: dayjs().add(Number(duration), "month").toDate(),
     };
 
     await pharmacy.save();
