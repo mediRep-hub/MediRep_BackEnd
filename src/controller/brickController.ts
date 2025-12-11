@@ -389,13 +389,21 @@ export const checkDoctorLocation = async (
     );
 
     if (distance <= 500) {
-      return res
-        .status(200)
-        .json({ success: true, message: "Location is match", distance });
+      // Update doctor status in the callReport
+      doctorEntry.status = "check In"; // ✅ Correct string
+      await callReport.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Location is match",
+        distance,
+      });
     } else {
-      return res
-        .status(200)
-        .json({ success: false, message: "Location is not match", distance });
+      return res.status(200).json({
+        success: false,
+        message: "Location is not match",
+        distance,
+      });
     }
   } catch (error: any) {
     console.error("Error checking location:", error);
