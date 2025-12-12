@@ -5,7 +5,7 @@ import {
   getSingleRequisition,
   updateRequisition,
   deleteRequisition,
-  updateAccepted,
+  updateStatus,
 } from "../controller/requisitionController";
 
 const router = express.Router();
@@ -15,6 +15,6 @@ router.get("/getAllRequisition", getAllRequisitions);
 router.get("/getSingleRequisition/:id", getSingleRequisition);
 router.put("/updateRequisition/:id", updateRequisition);
 router.delete("/deleteRequisition/:id", deleteRequisition);
-router.patch("/updateAccepted/:id", updateAccepted);
+router.patch("/updateStatus/:id", updateStatus);
 
 export default router;

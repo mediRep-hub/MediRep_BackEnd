@@ -29,14 +29,17 @@ export interface IDoctorSubDoc extends Document {
   reason: string;
 }
 
+// ---------------- MAIN DOCUMENT ----------------
+
 export interface IBrick extends Document {
-  region: string;
-  area: string;
-  brickName: string;
-  route: string;
-  day: string;
+  region?: string;
+  area?: string;
+  brickName?: string;
+  route?: string;
+  day?: string;
   mrName: Types.ObjectId;
   doctorList: Types.DocumentArray<IDoctorSubDoc>;
+  products: string[]; // array of strings
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,6 +90,7 @@ const brickSchema = new Schema<IBrick>(
     day: { type: String },
     mrName: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
     doctorList: [doctorSubSchema],
+    products: [{ type: String, required: true }], // ✅ array of strings
   },
   { timestamps: true }
 );

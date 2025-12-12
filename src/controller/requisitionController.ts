@@ -129,7 +129,6 @@ export const getAllRequisitions = async (req: Request, res: Response) => {
   }
 };
 
-// 🟢 Get single requisition
 export const getSingleRequisition = async (req: Request, res: Response) => {
   try {
     const requisition = await Requisition.findById(req.params.id).populate(
@@ -209,35 +208,42 @@ export const deleteRequisition = async (req: Request, res: Response) => {
   }
 };
 
-// 🟢 Update accepted status
-export const updateAccepted = async (req: Request, res: Response) => {
-  const { error } = validateRequisitionData(req.body);
-  if (error) {
+// 🟢 Update updateStatus status
+export const updateStatus = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = req.body; // "accepted" or "rejected"
+
+  // Validate status
+  if (!["accepted", "rejected"].includes(status)) {
     return res.status(400).json({
       success: false,
-      message: error.details.map((d) => d.message).join(", "),
+      message: "Invalid status value",
     });
   }
-  const { id } = req.params;
 
   try {
-    const updatedRequisition = await Requisition.findByIdAndUpdate(
+    const updated = await Requisition.findByIdAndUpdate(
       id,
-      { accepted: true },
+      {
+        status, // status update
+        accepted: status === "accepted", // boolean field update
+      },
       { new: true }
     ).populate("doctor", "name image specialty");
 
-    if (!updatedRequisition) {
-      return res.status(404).json({ error: "Requisition not found" });
+    if (!updated) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Requisition not found" });
     }
 
     res.status(200).json({
       success: true,
-      message: "Requisition accepted",
-      data: updatedRequisition,
+      message: `Requisition ${status}`,
+      data: updated,
     });
   } catch (error: any) {
-    console.error("Update Accepted Error:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Update Status Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

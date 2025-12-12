@@ -120,6 +120,21 @@ export const getAllProducts = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+export const getAllProductsMR = async (req: Request, res: Response) => {
+  try {
+    // Fetch all products excluding Discontinued
+    const products = await Product.find({
+      isStatus: { $ne: "Discontinued" },
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const updateProduct = async (req: Request, res: Response) => {
   try {
