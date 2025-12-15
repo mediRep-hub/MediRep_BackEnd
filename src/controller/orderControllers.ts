@@ -200,7 +200,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
       .populate("mrName", "name")
       .populate({
         path: "pharmacyId",
-        select: "name location address lat lng discount", // ✅ include discount from pharmacy
+        select: "name location address lat lng discount area", // ✅ include discount from pharmacy
       })
       .exec();
 
