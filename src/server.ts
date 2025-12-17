@@ -10,6 +10,7 @@ import requisitionRoutes from "./routes/requisitionRoute";
 import uploadFileRoutes from "./routes/uploadRoute";
 import orderRoutes from "./routes/orderRoutes";
 import pharmacyRoutes from "./routes/pharmacyRoutes";
+import primarySale from "./routes/primarySalesRoutes";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
 import { createServer } from "http";
@@ -72,6 +73,7 @@ app.use("/brick", callBrickRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
+app.use("/primarySale", primarySale);
 
 app.use(ErrorHandler);
 
