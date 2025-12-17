@@ -14,6 +14,7 @@ const productSchema = Joi.object({
   saleReturnQNT: Joi.number().min(0).default(0),
   netSale: Joi.number().min(0).default(0),
   floorStockValue: Joi.number().min(0).default(0),
+  saleQty: Joi.number().min(0).default(0),
 });
 
 // Distributor validation schema
