@@ -105,58 +105,55 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
     const distributorName = req.body.distributorName;
     const area = req.body.area || "Unknown";
 
-    if (!req.file) {
+    if (!req.body.file || !distributorName) {
       return res
         .status(400)
-        .json({ success: false, message: "CSV file is required" });
-    }
-    if (!distributorName) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Distributor is required" });
+        .json({
+          success: false,
+          message: "CSV file and distributor are required",
+        });
     }
 
-    const products: any[] = [];
+    // req.body.file should be a base64 string from frontend
+    const csvBuffer = Buffer.from(req.body.file, "base64");
+    const csvString = csvBuffer.toString("utf-8");
 
-    fs.createReadStream(req.file.path)
-      .pipe(csv())
-      .on("data", (row) => {
-        products.push({
-          sku: row.sku,
-          productName: row.productName,
-          openBalance: Number(row.openBalance) || 0,
-          purchaseQNT: Number(row.purchaseQNT) || 0,
-          saleQty: Number(row.saleQty) || 0,
-          purchaseReturn: Number(row.purchaseReturn) || 0,
-          saleReturnQNT: Number(row.saleReturnQNT) || 0,
-          netSale: Number(row.netSale) || 0,
-          floorStockValue: Number(row.floorStockValue) || 0,
-        });
-      })
-      .on("end", async () => {
-        // Only ONE Primary Sale document per distributor
-        const primarySaleData = {
-          distributorName,
-          area,
-          primarySale: products.reduce((sum, p) => sum + p.saleQty, 0),
-          totalSaleQNT: products.reduce((sum, p) => sum + p.netSale, 0),
-          floorStockQNT: products.reduce((sum, p) => sum + p.openBalance, 0),
-          floorStockValue: products.reduce(
-            (sum, p) => sum + p.floorStockValue,
-            0
-          ),
-          status: "active", // or get from dropdown/CSV if needed
-          products, // all products in array
-        };
+    // Parse CSV using PapaParse
+    const parsed = Papa.parse(csvString, {
+      header: true,
+      skipEmptyLines: true,
+    });
 
-        await Distributor.create(primarySaleData);
-        fs.unlinkSync(req.file.path);
+    const products = parsed.data.map((row: any) => ({
+      sku: row.sku,
+      productName: row.productName,
+      openBalance: Number(row.openBalance) || 0,
+      purchaseQNT: Number(row.purchaseQNT) || 0,
+      saleQty: Number(row.saleQty) || 0,
+      purchaseReturn: Number(row.purchaseReturn) || 0,
+      saleReturnQNT: Number(row.saleReturnQNT) || 0,
+      netSale: Number(row.netSale) || 0,
+      floorStockValue: Number(row.floorStockValue) || 0,
+    }));
 
-        return res.status(200).json({
-          success: true,
-          message: `Primary Sale created with ${products.length} products`,
-        });
-      });
+    // Only one primary sale per distributor
+    const primarySaleData = {
+      distributorName,
+      area,
+      primarySale: products.reduce((sum, p) => sum + p.saleQty, 0),
+      totalSaleQNT: products.reduce((sum, p) => sum + p.netSale, 0),
+      floorStockQNT: products.reduce((sum, p) => sum + p.openBalance, 0),
+      floorStockValue: products.reduce((sum, p) => sum + p.floorStockValue, 0),
+      status: "active",
+      products,
+    };
+
+    await Distributor.create(primarySaleData);
+
+    return res.status(200).json({
+      success: true,
+      message: `Primary Sale created with ${products.length} products`,
+    });
   } catch (err: any) {
     console.error(err);
     return res
