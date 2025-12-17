@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
 import { Distributor } from "../models/primarySales";
 import { distributorValidationSchema } from "../validations/primarySalesValidation";
-import csv from "csv-parser";
-import fs from "fs";
 
+const Papa = require("papaparse");
 // Create Primary Sale
 export const createPrimarySale = async (req: Request, res: Response) => {
   try {
@@ -106,12 +105,10 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
     const area = req.body.area || "Unknown";
 
     if (!req.body.file || !distributorName) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "CSV file and distributor are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "CSV file and distributor are required",
+      });
     }
 
     // req.body.file should be a base64 string from frontend
