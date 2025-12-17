@@ -1,0 +1,3 @@
+area,primarySale,totalSaleQNT,floorStockQNT,floorStockValue,status,products
+Karachi,150000,1200,300,50000,active,"""[{""""sku"""":""""PRD001"""",""""productName"""":""""Product A"""",""""openBalance"""":100,""""purchaseQNT"""":50,""""purchaseReturn"""":5,""""saleReturnQNT"""":3,""""netSale"""":142,""""floorStockValue"""":2000,""""saleQty"""":3500}]"""
+Lahore,180000,200,800,60000,active,"""[{""""sku"""":""""PRD001"""",""""productName"""":""""Product A"""",""""openBalance"""":100,""""purchaseQNT"""":50,""""purchaseReturn"""":5,""""saleReturnQNT"""":3,""""netSale"""":142,""""floorStockValue"""":2000,""""saleQty"""":3500}]"""

@@ -102,59 +102,63 @@ export const deletePrimarySale = async (req: Request, res: Response) => {
 
 export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
   try {
+    const distributorName = req.body.distributorName;
+    const area = req.body.area || "Unknown";
+
     if (!req.file) {
       return res
         .status(400)
         .json({ success: false, message: "CSV file is required" });
     }
+    if (!distributorName) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Distributor is required" });
+    }
 
-    const results: any[] = [];
+    const products: any[] = [];
 
     fs.createReadStream(req.file.path)
       .pipe(csv())
       .on("data", (row) => {
-        // Parse product data if stored as JSON string in CSV
-        if (row.products) {
-          try {
-            row.products = JSON.parse(row.products);
-          } catch (err) {
-            row.products = [];
-          }
-        }
-        results.push(row);
+        products.push({
+          sku: row.sku,
+          productName: row.productName,
+          openBalance: Number(row.openBalance) || 0,
+          purchaseQNT: Number(row.purchaseQNT) || 0,
+          saleQty: Number(row.saleQty) || 0,
+          purchaseReturn: Number(row.purchaseReturn) || 0,
+          saleReturnQNT: Number(row.saleReturnQNT) || 0,
+          netSale: Number(row.netSale) || 0,
+          floorStockValue: Number(row.floorStockValue) || 0,
+        });
       })
       .on("end", async () => {
-        const validData: any[] = [];
-        const errors: string[] = [];
+        // Only ONE Primary Sale document per distributor
+        const primarySaleData = {
+          distributorName,
+          area,
+          primarySale: products.reduce((sum, p) => sum + p.saleQty, 0),
+          totalSaleQNT: products.reduce((sum, p) => sum + p.netSale, 0),
+          floorStockQNT: products.reduce((sum, p) => sum + p.openBalance, 0),
+          floorStockValue: products.reduce(
+            (sum, p) => sum + p.floorStockValue,
+            0
+          ),
+          status: "active", // or get from dropdown/CSV if needed
+          products, // all products in array
+        };
 
-        for (let i = 0; i < results.length; i++) {
-          const { error, value } = distributorValidationSchema.validate(
-            results[i],
-            { abortEarly: false }
-          );
-          if (error) {
-            errors.push(
-              `Row ${i + 1}: ${error.details.map((e) => e.message).join(", ")}`
-            );
-          } else {
-            validData.push(value);
-          }
-        }
-
-        if (validData.length > 0) {
-          await Distributor.insertMany(validData);
-        }
-
-        // Delete the uploaded CSV file
+        await Distributor.create(primarySaleData);
         fs.unlinkSync(req.file.path);
 
         return res.status(200).json({
           success: true,
-          message: `${validData.length} records inserted successfully`,
-          errors: errors,
+          message: `Primary Sale created with ${products.length} products`,
         });
       });
   } catch (err: any) {
+    console.error(err);
     return res
       .status(500)
       .json({ success: false, message: err.message || "Server Error" });

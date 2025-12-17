@@ -6,11 +6,16 @@ import {
   deletePrimarySale,
   uploadBulkPrimarySales,
 } from "../controller/primarySalesController";
+import multer from "multer";
 
 const router = express.Router();
-
+const upload = multer({ dest: "uploads/" });
 // Routes
-router.post("/uploadBulkPrimarySales", uploadBulkPrimarySales);
+router.post(
+  "/uploadBulkPrimarySales",
+  upload.single("file"),
+  uploadBulkPrimarySales
+);
 router.post("/createPrimarySale", createPrimarySale);
 router.get("/getAllPrimarySales", getAllPrimarySales);
 router.put("/updatePrimarySale/:id", updatePrimarySale);
