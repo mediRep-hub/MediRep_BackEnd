@@ -4,6 +4,7 @@ const ProductSchema = new mongoose.Schema({
   productName: { type: String, required: true },
   openBalance: { type: Number, default: 0 },
   purchaseQNT: { type: Number, default: 0 },
+  saleQty: { type: Number, default: 0 },
   purchaseReturn: { type: Number, default: 0 },
   saleReturnQNT: { type: Number, default: 0 },
   netSale: { type: Number, default: 0 },

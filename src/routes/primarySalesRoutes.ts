@@ -13,7 +13,7 @@ const router = express.Router();
 router.post("/uploadBulkPrimarySales", uploadBulkPrimarySales);
 router.post("/createPrimarySale", createPrimarySale);
 router.get("/getAllPrimarySales", getAllPrimarySales);
-router.put("/updatePrimarySale:id", updatePrimarySale);
-router.delete("/deletePrimarySale:id", deletePrimarySale);
+router.put("/updatePrimarySale/:id", updatePrimarySale);
+router.delete("/deletePrimarySale/:id", deletePrimarySale);
 
 export default router;
