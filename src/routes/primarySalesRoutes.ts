@@ -9,7 +9,7 @@ import {
 import multer from "multer";
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ storage: multer.memoryStorage() });
 // Routes
 router.post(
   "/uploadBulkPrimarySales",

@@ -104,24 +104,31 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
     const distributorName = req.body.distributorName;
     const area = req.body.area || "Unknown";
 
-    if (!req.body.file || !distributorName) {
-      return res.status(400).json({
-        success: false,
-        message: "CSV file and distributor are required",
-      });
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "CSV file is required" });
+    }
+    if (!distributorName) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Distributor is required" });
     }
 
-    // req.body.file should be a base64 string from frontend
-    const csvBuffer = Buffer.from(req.body.file, "base64");
-    const csvString = csvBuffer.toString("utf-8");
-
-    // Parse CSV using PapaParse
+    // Parse CSV from memory
+    const csvString = req.file.buffer.toString("utf-8");
     const parsed = Papa.parse(csvString, {
       header: true,
       skipEmptyLines: true,
     });
+    const rows = parsed.data as any[];
 
-    const products = parsed.data.map((row: any) => ({
+    if (!rows.length) {
+      return res.status(400).json({ success: false, message: "CSV is empty" });
+    }
+
+    // Create products array
+    const products = rows.map((row) => ({
       sku: row.sku,
       productName: row.productName,
       openBalance: Number(row.openBalance) || 0,
@@ -133,7 +140,7 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
       floorStockValue: Number(row.floorStockValue) || 0,
     }));
 
-    // Only one primary sale per distributor
+    // Aggregate sale values
     const primarySaleData = {
       distributorName,
       area,
@@ -152,7 +159,7 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
       message: `Primary Sale created with ${products.length} products`,
     });
   } catch (err: any) {
-    console.error(err);
+    console.error("Bulk Upload Error:", err);
     return res
       .status(500)
       .json({ success: false, message: err.message || "Server Error" });
