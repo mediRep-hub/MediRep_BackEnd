@@ -18,9 +18,9 @@ declare module "express" {
 
 const adminAuthController = {
   async register(req: Request, res: Response, next: NextFunction) {
+    // Validation schema
     const adminRegisterSchema = Joi.object({
       name: Joi.string().required(),
-
       phoneNumber: Joi.string().required(),
       email: Joi.string().email().required(),
       password: Joi.string()
@@ -31,18 +31,18 @@ const adminAuthController = {
         .valid(Joi.ref("password"))
         .required()
         .messages({ "any.only": "Passwords do not match" }),
-
       image: Joi.string().optional(),
-      division: Joi.string().required(),
+      division: Joi.string().required(), // e.g., Admin, Distributor, MR
       area: Joi.string().required(),
       region: Joi.string().required(),
       strategy: Joi.string().required(),
       position: Joi.string().required(),
-
       ownerName: Joi.string().when("division", {
         is: "Distributor",
-        then: Joi.required(),
-        otherwise: Joi.optional(),
+        then: Joi.string().required().messages({
+          "any.required": "Owner Name is required for Distributor",
+        }),
+        otherwise: Joi.string().allow(""), // <-- Fix
       }),
     });
 
@@ -64,6 +64,7 @@ const adminAuthController = {
     } = req.body;
 
     try {
+      // Check if email exists
       const emailRegex = new RegExp(email, "i");
       const emailExists = await Admin.findOne({
         email: { $regex: emailRegex },
@@ -71,7 +72,10 @@ const adminAuthController = {
       if (emailExists)
         return next({ status: 409, message: "Email already registered" });
 
+      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Generate unique adminId
       const generateAdminId = async (position: string) => {
         const initials = position
           .split(" ")
@@ -82,9 +86,8 @@ const adminAuthController = {
         let adminId = "";
 
         while (!uniqueIdFound) {
-          const randomDigits = Math.floor(1000 + Math.random() * 9000); // 1000-9999
+          const randomDigits = Math.floor(1000 + Math.random() * 9000);
           adminId = `${initials}-${randomDigits}`;
-
           const existing = await Admin.findOne({ adminId });
           if (!existing) uniqueIdFound = true;
         }
@@ -94,9 +97,9 @@ const adminAuthController = {
 
       const adminId = await generateAdminId(position);
 
-      // Create new Admin
+      // Create admin object
       const adminToRegister = new Admin({
-        adminId, // <-- Generated ID
+        adminId,
         name,
         phoneNumber,
         email,
@@ -110,9 +113,20 @@ const adminAuthController = {
         ownerName,
       });
 
+      // Automatically assign distributor if division = MR
+      if (division === "MR") {
+        const distributor = await Admin.findOne({
+          division: "Distributor",
+          area: area,
+        });
+        if (distributor) {
+          (adminToRegister as any).distributor = distributor._id;
+        }
+      }
+
       const admin = await adminToRegister.save();
 
-      // Generate tokens
+      // Generate JWT tokens
       const accessToken = JWTService.signAccessToken(
         { _id: admin._id.toString() },
         "365d"
@@ -125,7 +139,7 @@ const adminAuthController = {
       await JWTService.storeRefreshToken(refreshToken, undefined, admin._id);
       await JWTService.storeAccessToken(accessToken, undefined, admin._id);
 
-      // Remove password safely
+      // Remove password from response
       const { password: _, ...adminSafe } = admin.toObject();
 
       return res
@@ -221,18 +235,11 @@ const adminAuthController = {
   // 📝 GET ALL LOGINS
   async getAllAdmins(req: Request, res: Response, next: NextFunction) {
     try {
-      // Parse page and limit from query params
-      const page = parseInt(req.query.page as string) || 1; // default 1
-      const limit = parseInt(req.query.limit as string) || 10; // default 10
-
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      // Count total admins (excluding SuperAdmin)
-      const totalItems = await Admin.countDocuments({
-        email: { $ne: "SuperAdmin@gmail.com" },
-      });
-
-      // Fetch admins with pagination
+      // Fetch all admins (excluding SuperAdmin)
       const admins = await Admin.find({
         email: { $ne: "SuperAdmin@gmail.com" },
       })
@@ -241,10 +248,30 @@ const adminAuthController = {
         )
         .skip(skip)
         .limit(limit)
-        .sort({ name: 1 }); // optional sorting
+        .sort({ name: 1 })
+        .lean(); // lean() returns plain JS objects
+
+      // Fetch all distributors
+      const distributors = await Admin.find({ division: "Distributor" })
+        .select("name area email phoneNumber ownerName")
+        .lean();
+
+      // Map distributor to each MR
+      const adminsWithDistributor = admins.map((admin) => {
+        if (admin.position === "MedicalRep(MR)") {
+          const distributor = distributors.find((d) => d.area === admin.area);
+          return { ...admin, distributor: distributor || null };
+        }
+        return admin;
+      });
+
+      // Count total items
+      const totalItems = await Admin.countDocuments({
+        email: { $ne: "SuperAdmin@gmail.com" },
+      });
 
       return res.status(200).json({
-        admins,
+        admins: adminsWithDistributor,
         pagination: {
           totalItems,
           currentPage: page,
