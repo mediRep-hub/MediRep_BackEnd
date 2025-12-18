@@ -385,3 +385,57 @@ export const checkDoctorLocation = async (
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+interface UpdateStatusBody {
+  doctorId: string;
+  status: "pending" | "close" | "check In" | "hold";
+}
+export const statusHold = async (
+  req: Request<{ id: string }, {}, UpdateStatusBody>,
+  res: Response
+) => {
+  try {
+    const { id } = req.params; // Brick ID
+    const { doctorId, status } = req.body;
+
+    // Validate status
+    const validStatuses = ["pending", "close", "check In", "hold"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+      });
+    }
+
+    const brick = await CallReporting.findById(id);
+    if (!brick) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Brick not found" });
+    }
+
+    const doctorEntry = brick.doctorList.find(
+      (d) => d.doctor.toString() === doctorId
+    );
+
+    if (!doctorEntry) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor not found in this Brick" });
+    }
+
+    doctorEntry.status = status;
+    await brick.save();
+
+    await brick.populate("doctorList.doctor");
+
+    res.status(200).json({
+      success: true,
+      message: "Status updated successfully",
+      data: brick,
+    });
+  } catch (error: any) {
+    console.error("Error updating doctor status:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

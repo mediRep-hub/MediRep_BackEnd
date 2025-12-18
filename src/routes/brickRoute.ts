@@ -6,6 +6,7 @@ import {
   updateBrick,
   reorderDoctorList,
   checkDoctorLocation,
+  statusHold,
 } from "../controller/brickController";
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.put("/updateBrick/:id", updateBrick);
 router.put("/reorderDoctorList/:id", reorderDoctorList);
 router.delete("/deleteBrick/:id", deleteBrick);
 router.post("/checkDoctorLocation", checkDoctorLocation);
+router.post("/statusHold/:id", statusHold);
 
 export default router;

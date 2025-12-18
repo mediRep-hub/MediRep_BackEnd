@@ -10,7 +10,7 @@ const generateShortId = () => {
 export interface IDoctorSubDoc extends Document {
   doctor: Types.ObjectId;
   callId: string;
-  status: "pending" | "close" | "check In";
+  status: "pending" | "close" | "check In" | "hold";
   activeRequisition: string;
   checkIn: string;
   checkOut: string;
@@ -55,7 +55,7 @@ const doctorSubSchema = new Schema<IDoctorSubDoc>({
   callId: { type: String, default: generateShortId, required: true },
   status: {
     type: String,
-    enum: ["pending", "close", "check In"],
+    enum: ["pending", "close", "check In", "hold"],
     default: "pending",
   },
   activeRequisition: { type: String, default: "" },
