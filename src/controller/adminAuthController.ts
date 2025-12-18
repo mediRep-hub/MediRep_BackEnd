@@ -171,8 +171,10 @@ const adminAuthController = {
     const { email, password } = req.body;
 
     try {
-      const emailRegex = new RegExp(email, "i");
-      const admin = await Admin.findOne({ email: { $regex: emailRegex } });
+      // Find admin by email
+      const admin = await Admin.findOne({
+        email: new RegExp(`^${email}$`, "i"),
+      }).lean();
 
       if (!admin) {
         return next({ status: 400, message: "Incorrect email or password." });
@@ -190,31 +192,23 @@ const adminAuthController = {
         return next({ status: 400, message: "Incorrect email or password." });
       }
 
-      // ✅ Find distributor if the user is MR
+      // 🔑 Dynamically attach distributor if MR
       let distributorInfo = null;
       if (admin.position === "MedicalRep(MR)") {
+        // Always fetch the distributor for the same area
         const distributor = await Admin.findOne({
           division: "Distributor",
           area: admin.area, // same area as MR
-        }).select(
-          "name email phoneNumber area region strategy position ownerName"
-        );
+        })
+          .select(
+            "name email phoneNumber area region strategy position ownerName"
+          )
+          .lean();
 
-        if (distributor) {
-          distributorInfo = {
-            _id: distributor._id,
-            name: distributor.name,
-            email: distributor.email,
-            phoneNumber: distributor.phoneNumber,
-            area: distributor.area,
-            region: distributor.region,
-            strategy: distributor.strategy,
-            position: distributor.position,
-            ownerName: distributor.ownerName,
-          };
-        }
+        if (distributor) distributorInfo = distributor;
       }
 
+      // Generate tokens
       const accessToken = JWTService.signAccessToken(
         { _id: admin._id.toString() },
         "365d"
@@ -229,25 +223,24 @@ const adminAuthController = {
         { token: refreshToken },
         { upsert: true }
       );
-
       await AccessToken.updateOne(
         { adminId: admin._id },
         { token: accessToken },
         { upsert: true }
       );
 
-      // Remove password safely
-      const { password: _, ...adminSafe } = admin.toObject();
+      // Remove password
+      const { password: _, ...adminSafe } = admin;
 
-      // Add distributor info dynamically if MR
-      const responseAdmin = {
-        ...adminSafe,
-        distributor: distributorInfo,
-      };
-
-      return res
-        .status(200)
-        .json({ admin: responseAdmin, auth: true, token: accessToken });
+      // ✅ Attach distributor dynamically
+      return res.status(200).json({
+        admin: {
+          ...adminSafe,
+          distributor: distributorInfo, // this will show for all MRs in the same area
+        },
+        auth: true,
+        token: accessToken,
+      });
     } catch (err) {
       return next(err);
     }
