@@ -40,7 +40,10 @@ export const validateOrderData = (data: any) => {
       "array.base": "Medicines must be an array",
       "array.min": "At least one medicine is required",
     }),
-
+    IStatus: Joi.string().required().messages({
+      "any.required": "AddStatusress is required",
+      "string.empty": "I=Status cannot be empty",
+    }),
     discount: Joi.number().min(0).default(0).messages({
       "number.base": "Discount must be a number",
       "number.min": "Discount cannot be negative",
