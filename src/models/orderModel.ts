@@ -40,8 +40,7 @@ const orderSchema = new mongoose.Schema<IOrder>(
     discount: { type: Number },
     total: { type: Number, required: true },
 
-    // 👇 Add this new field
-    IStatus: { type: Boolean, default: false },
+    IStatus: { type: Boolean, required: true },
   },
   { timestamps: true }
 );
