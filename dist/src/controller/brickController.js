@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkDoctorLocation = exports.reorderDoctorList = exports.updateBrick = exports.deleteBrick = exports.getAllBricks = exports.addBrick = void 0;
+exports.statusHold = exports.checkDoctorLocation = exports.reorderDoctorList = exports.updateBrick = exports.deleteBrick = exports.getAllBricks = exports.addBrick = void 0;
 const brickModel_1 = __importDefault(require("../models/brickModel"));
 const doctorModel_1 = __importDefault(require("../models/doctorModel"));
 const admin_1 = __importDefault(require("../models/admin"));
@@ -293,3 +293,42 @@ const checkDoctorLocation = async (req, res) => {
     }
 };
 exports.checkDoctorLocation = checkDoctorLocation;
+const statusHold = async (req, res) => {
+    try {
+        const { id } = req.params; // Brick ID
+        const { doctorId, status } = req.body;
+        // Validate status
+        const validStatuses = ["pending", "close", "check In", "hold"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+            });
+        }
+        const brick = await brickModel_1.default.findById(id);
+        if (!brick) {
+            return res
+                .status(404)
+                .json({ success: false, message: "Brick not found" });
+        }
+        const doctorEntry = brick.doctorList.find((d) => d.doctor.toString() === doctorId);
+        if (!doctorEntry) {
+            return res
+                .status(404)
+                .json({ success: false, message: "Doctor not found in this Brick" });
+        }
+        doctorEntry.status = status;
+        await brick.save();
+        await brick.populate("doctorList.doctor");
+        res.status(200).json({
+            success: true,
+            message: "Status updated successfully",
+            data: brick,
+        });
+    }
+    catch (error) {
+        console.error("Error updating doctor status:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.statusHold = statusHold;

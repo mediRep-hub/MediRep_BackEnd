@@ -28,7 +28,6 @@ const orderSchema = new mongoose_1.default.Schema({
     subtotal: { type: Number, required: true },
     discount: { type: Number },
     total: { type: Number, required: true },
-    // 👇 Add this new field
-    IStatus: { type: Boolean, default: false },
+    IStatus: { type: Boolean, required: true },
 }, { timestamps: true });
 exports.Order = mongoose_1.default.model("Order", orderSchema);

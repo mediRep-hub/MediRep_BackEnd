@@ -12,4 +12,5 @@ router.put("/updateBrick/:id", brickController_1.updateBrick);
 router.put("/reorderDoctorList/:id", brickController_1.reorderDoctorList);
 router.delete("/deleteBrick/:id", brickController_1.deleteBrick);
 router.post("/checkDoctorLocation", brickController_1.checkDoctorLocation);
+router.post("/statusHold/:id", brickController_1.statusHold);
 exports.default = router;

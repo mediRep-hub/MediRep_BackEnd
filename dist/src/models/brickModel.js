@@ -44,7 +44,7 @@ const doctorSubSchema = new mongoose_1.Schema({
     callId: { type: String, default: generateShortId, required: true },
     status: {
         type: String,
-        enum: ["pending", "close", "check In"],
+        enum: ["pending", "close", "check In", "hold"],
         default: "pending",
     },
     activeRequisition: { type: String, default: "" },

@@ -124,8 +124,10 @@ const adminAuthController = {
             return next(error);
         const { email, password } = req.body;
         try {
-            const emailRegex = new RegExp(email, "i");
-            const admin = await admin_1.default.findOne({ email: { $regex: emailRegex } });
+            // Find admin by email
+            const admin = await admin_1.default.findOne({
+                email: new RegExp(`^${email}$`, "i"),
+            }).lean();
             if (!admin) {
                 return next({ status: 400, message: "Incorrect email or password." });
             }
@@ -139,15 +141,35 @@ const adminAuthController = {
             if (!match) {
                 return next({ status: 400, message: "Incorrect email or password." });
             }
+            // 🔑 Dynamically attach distributor if MR
+            let distributorInfo = null;
+            if (admin.position === "MedicalRep(MR)") {
+                // Always fetch the distributor for the same area
+                const distributor = await admin_1.default.findOne({
+                    division: "Distributor",
+                    area: admin.area, // same area as MR
+                })
+                    .select("name email phoneNumber area region strategy position ownerName")
+                    .lean();
+                if (distributor)
+                    distributorInfo = distributor;
+            }
+            // Generate tokens
             const accessToken = JWTService_1.default.signAccessToken({ _id: admin._id.toString() }, "365d");
             const refreshToken = JWTService_1.default.signRefreshToken({ _id: admin._id.toString() }, "365d");
             await refreshToken_1.default.updateOne({ adminId: admin._id }, { token: refreshToken }, { upsert: true });
             await accessToken_1.default.updateOne({ adminId: admin._id }, { token: accessToken }, { upsert: true });
-            // ✅ Remove password safely using destructuring
-            const { password: _, ...adminSafe } = admin.toObject();
-            return res
-                .status(200)
-                .json({ admin: adminSafe, auth: true, token: accessToken });
+            // Remove password
+            const { password: _, ...adminSafe } = admin;
+            // ✅ Attach distributor dynamically
+            return res.status(200).json({
+                admin: {
+                    ...adminSafe,
+                    distributor: distributorInfo, // this will show for all MRs in the same area
+                },
+                auth: true,
+                token: accessToken,
+            });
         }
         catch (err) {
             return next(err);
@@ -173,36 +195,24 @@ const adminAuthController = {
     // 📝 GET ALL LOGINS
     async getAllAdmins(req, res, next) {
         try {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
+            // Parse page and limit from query params
+            const page = parseInt(req.query.page) || 1; // default 1
+            const limit = parseInt(req.query.limit) || 10; // default 10
             const skip = (page - 1) * limit;
-            // Fetch all admins (excluding SuperAdmin)
+            // Count total admins (excluding SuperAdmin)
+            const totalItems = await admin_1.default.countDocuments({
+                email: { $ne: "SuperAdmin@gmail.com" },
+            });
+            // Fetch admins with pagination
             const admins = await admin_1.default.find({
                 email: { $ne: "SuperAdmin@gmail.com" },
             })
                 .select("adminId name email phoneNumber division ownerName area region strategy position image")
                 .skip(skip)
                 .limit(limit)
-                .sort({ name: 1 })
-                .lean(); // lean() returns plain JS objects
-            // Fetch all distributors
-            const distributors = await admin_1.default.find({ division: "Distributor" })
-                .select("name area email phoneNumber ownerName")
-                .lean();
-            // Map distributor to each MR
-            const adminsWithDistributor = admins.map((admin) => {
-                if (admin.position === "MedicalRep(MR)") {
-                    const distributor = distributors.find((d) => d.area === admin.area);
-                    return { ...admin, distributor: distributor || null };
-                }
-                return admin;
-            });
-            // Count total items
-            const totalItems = await admin_1.default.countDocuments({
-                email: { $ne: "SuperAdmin@gmail.com" },
-            });
+                .sort({ name: 1 }); // optional sorting
             return res.status(200).json({
-                admins: adminsWithDistributor,
+                admins,
                 pagination: {
                     totalItems,
                     currentPage: page,
