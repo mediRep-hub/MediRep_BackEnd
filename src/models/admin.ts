@@ -16,6 +16,7 @@ export interface IAdmin extends Document {
   createdAt?: Date;
   updatedAt?: Date;
   ownerName: string;
+  fcmToken?: string;
 }
 
 const adminSchema: Schema<IAdmin> = new Schema(
@@ -26,7 +27,7 @@ const adminSchema: Schema<IAdmin> = new Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     image: { type: String },
-
+    fcmToken: { type: String },
     division: { type: String, required: true },
     area: { type: String, required: true },
     region: { type: String, required: true },

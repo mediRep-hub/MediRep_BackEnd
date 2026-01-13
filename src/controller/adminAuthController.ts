@@ -160,21 +160,23 @@ const adminAuthController = {
   },
   // 🔑 LOGIN
   async login(req: Request, res: Response, next: NextFunction) {
+    // ✅ Validation
     const adminLoginSchema = Joi.object({
       email: Joi.string().email().required(),
       password: Joi.string().required(),
+      fcmToken: Joi.string().optional(),
     });
 
     const { error } = adminLoginSchema.validate(req.body);
     if (error) return next(error);
 
-    const { email, password } = req.body;
+    const { email, password, fcmToken } = req.body;
 
     try {
-      // Find admin by email
+      // ✅ Find admin (NO .lean())
       const admin = await Admin.findOne({
         email: new RegExp(`^${email}$`, "i"),
-      }).lean();
+      });
 
       if (!admin) {
         return next({ status: 400, message: "Incorrect email or password." });
@@ -187,18 +189,24 @@ const adminAuthController = {
         });
       }
 
+      // ✅ Password check
       const match = await bcrypt.compare(password, admin.password);
       if (!match) {
         return next({ status: 400, message: "Incorrect email or password." });
       }
 
-      // 🔑 Dynamically attach distributor if MR
+      // ✅ SAVE FCM TOKEN DIRECTLY
+      if (fcmToken) {
+        admin.fcmToken = fcmToken;
+        await admin.save(); // 🔥 This ensures DB is updated
+      }
+
+      // ✅ Distributor info for MR
       let distributorInfo = null;
       if (admin.position === "MedicalRep(MR)") {
-        // Always fetch the distributor for the same area
         const distributor = await Admin.findOne({
           division: "Distributor",
-          area: admin.area, // same area as MR
+          area: admin.area,
         })
           .select(
             "name email phoneNumber area region strategy position ownerName"
@@ -208,40 +216,44 @@ const adminAuthController = {
         if (distributor) distributorInfo = distributor;
       }
 
-      // Generate tokens
+      // ✅ Generate JWT tokens
       const accessToken = JWTService.signAccessToken(
         { _id: admin._id.toString() },
         "365d"
       );
+
       const refreshToken = JWTService.signRefreshToken(
         { _id: admin._id.toString() },
         "365d"
       );
 
+      // ✅ Save tokens
       await RefreshToken.updateOne(
         { adminId: admin._id },
         { token: refreshToken },
         { upsert: true }
       );
+
       await AccessToken.updateOne(
         { adminId: admin._id },
         { token: accessToken },
         { upsert: true }
       );
 
-      // Remove password
-      const { password: _, ...adminSafe } = admin;
+      // ✅ Remove password from response
+      const adminObj = admin.toObject();
+      delete adminObj.password;
 
-      // ✅ Attach distributor dynamically
       return res.status(200).json({
         admin: {
-          ...adminSafe,
-          distributor: distributorInfo, // this will show for all MRs in the same area
+          ...adminObj,
+          distributor: distributorInfo,
         },
         auth: true,
         token: accessToken,
       });
     } catch (err) {
+      console.error("Admin Login Error:", err);
       return next(err);
     }
   },
