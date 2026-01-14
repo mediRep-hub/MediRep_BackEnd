@@ -102,8 +102,7 @@ export const createOrder = async (req: Request, res: Response) => {
         ? calculatedSubtotal - calculatedSubtotal * (discount / 100)
         : calculatedSubtotal;
 
-    // IStatus logic: if discount is 0 → true, otherwise false
-    const IStatus = discount === 0;
+    const { IStatus } = req.body;
     const status = discount > 0 ? "Discount Applied" : "Normal";
 
     const newOrder = new Order({
@@ -115,7 +114,7 @@ export const createOrder = async (req: Request, res: Response) => {
       discount,
       pharmacyId,
       status,
-      IStatus, // use the calculated IStatus here
+      IStatus,
     });
 
     await newOrder.save();
