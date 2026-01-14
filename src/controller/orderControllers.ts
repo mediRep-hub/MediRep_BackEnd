@@ -103,7 +103,7 @@ export const createOrder = async (req: Request, res: Response) => {
         : calculatedSubtotal;
 
     // IStatus logic: if discount is 0 → true, otherwise false
-    const IStatus = discount === 0 ? true : false;
+    const IStatus = discount === 0;
     const status = discount > 0 ? "Discount Applied" : "Normal";
 
     const newOrder = new Order({
