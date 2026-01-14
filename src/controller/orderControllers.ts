@@ -247,7 +247,7 @@ export const acceptOrder = async (req: Request, res: Response) => {
     pharmacy.discount = {
       value: Number(discount),
       duration: Number(duration),
-      endDate: dayjs().add(Number(duration), "month").toDate(),
+      endDate: dayjs().add(Number(duration), "day").toDate(),
     };
 
     await pharmacy.save();
