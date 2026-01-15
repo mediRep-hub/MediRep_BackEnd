@@ -1,36 +1,33 @@
 import Joi from "joi";
 
-// Product validation schema
-const productSchema = Joi.object({
-  sku: Joi.string().required().messages({
-    "string.empty": "SKU is required",
-  }),
-  productName: Joi.string().required().messages({
-    "string.empty": "Product name is required",
-  }),
-  openBalance: Joi.number().min(0).default(0),
-  purchaseQNT: Joi.number().min(0).default(0),
-  purchaseReturn: Joi.number().min(0).default(0),
-  saleReturnQNT: Joi.number().min(0).default(0),
-  netSale: Joi.number().min(0).default(0),
-  floorStockValue: Joi.number().min(0).default(0),
-  saleQty: Joi.number().min(0).default(0),
-});
+const objectIdRegex = /^[a-fA-F0-9]{24}$/;
 
-// Distributor validation schema
-export const distributorValidationSchema = Joi.object({
-  distributorName: Joi.string().required().messages({
-    "string.empty": "Distributor Name is required",
-  }),
-  area: Joi.string().required().messages({
-    "string.empty": "Area is required",
-  }),
-  primarySale: Joi.number().min(0).default(0),
-  totalSaleQNT: Joi.number().min(0).default(0),
-  floorStockQNT: Joi.number().min(0).default(0),
-  floorStockValue: Joi.number().min(0).default(0),
-  status: Joi.string().valid("active", "inactive").default("active"),
-  products: Joi.array().items(productSchema).min(1).messages({
-    "array.min": "At least one product is required",
-  }),
-});
+export const primarySaleValidation = Joi.object({
+  orderId: Joi.string().required(),
+
+  mrName: Joi.string().required(),
+
+  distributorName: Joi.string().required(),
+
+  pharmacyId: Joi.string().pattern(objectIdRegex).required(),
+
+  address: Joi.string().required(),
+
+  medicines: Joi.array()
+    .items(
+      Joi.object({
+        medicineId: Joi.string().pattern(objectIdRegex).required(),
+        quantity: Joi.number().integer().min(1).required(),
+      })
+    )
+    .min(1)
+    .required(),
+
+  subtotal: Joi.number().min(0).required(),
+
+  discount: Joi.number().min(0).default(0),
+
+  total: Joi.number().min(0).required(),
+
+  IStatus: Joi.boolean().optional(),
+}).unknown(false);

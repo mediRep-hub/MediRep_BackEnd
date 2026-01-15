@@ -1,3 +1,4 @@
+// src/database.ts
 import mongoose from "mongoose";
 
 let cached = (global as any).mongoose || { conn: null, promise: null };

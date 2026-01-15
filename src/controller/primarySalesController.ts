@@ -1,14 +1,15 @@
 import { Request, Response } from "express";
-import { Distributor } from "../models/primarySales";
-import { distributorValidationSchema } from "../validations/primarySalesValidation";
+import { primarySaleValidation } from "../validations/primarySalesValidation";
+import { PrimarySale } from "../models/primarySales";
+import { Order } from "../models/orderModel";
 
 const Papa = require("papaparse");
-// Create Primary Sale
 export const createPrimarySale = async (req: Request, res: Response) => {
   try {
-    const { error, value } = distributorValidationSchema.validate(req.body, {
+    const { error, value } = primarySaleValidation.validate(req.body, {
       abortEarly: false,
     });
+
     if (error) {
       return res.status(400).json({
         success: false,
@@ -16,39 +17,79 @@ export const createPrimarySale = async (req: Request, res: Response) => {
       });
     }
 
-    const primarySale = new Distributor(value);
-    await primarySale.save();
+    const sale = await PrimarySale.create(value);
 
     return res.status(201).json({
       success: true,
       message: "Primary Sale created successfully",
-      data: primarySale,
+      data: sale,
     });
   } catch (err: any) {
-    return res
-      .status(500)
-      .json({ success: false, message: err.message || "Server Error" });
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
-// Get All Primary Sales
-export const getAllPrimarySales = async (req: Request, res: Response) => {
+export const getAllPrimarySales = async (_req: Request, res: Response) => {
   try {
-    const primarySales = await Distributor.find();
-    return res.status(200).json({ success: true, data: primarySales });
+    // Get PrimarySale documents where IStatus is true
+    const primarySales = await PrimarySale.find({ IStatus: true })
+      .populate("pharmacyId", "name location area discount")
+      .populate(
+        "medicines.medicineId",
+        "productName category amount productImage isStatus sku"
+      );
+
+    // Get Order documents where IStatus is true
+    const activeOrders = await Order.find({ IStatus: true })
+      .populate("pharmacyId", "name location area discount")
+      .populate(
+        "medicines.medicineId",
+        "productName category amount productImage isStatus sku"
+      );
+
+    // Combine both arrays
+    const allSales = [...primarySales, ...activeOrders];
+
+    res.status(200).json({
+      success: true,
+      data: allSales,
+    });
   } catch (err: any) {
-    return res
-      .status(500)
-      .json({ success: false, message: err.message || "Server Error" });
+    res.status(500).json({
+      success: false,
+      message: err.message || "Server Error",
+    });
   }
 };
 
-// Update Primary Sale by ID
+// GET BY ID
+export const getPrimarySaleById = async (req: Request, res: Response) => {
+  try {
+    const sale = await PrimarySale.findById(req.params.id);
+
+    if (!sale) {
+      return res.status(404).json({
+        success: false,
+        message: "Primary Sale not found",
+      });
+    }
+
+    res.status(200).json({ success: true, data: sale });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// UPDATE
 export const updatePrimarySale = async (req: Request, res: Response) => {
   try {
-    const { error, value } = distributorValidationSchema.validate(req.body, {
+    const { error, value } = primarySaleValidation.validate(req.body, {
       abortEarly: false,
     });
+
     if (error) {
       return res.status(400).json({
         success: false,
@@ -56,112 +97,111 @@ export const updatePrimarySale = async (req: Request, res: Response) => {
       });
     }
 
-    const updatedPrimarySale = await Distributor.findByIdAndUpdate(
-      req.params.id,
-      value,
-      { new: true }
-    );
-    if (!updatedPrimarySale)
-      return res
-        .status(404)
-        .json({ success: false, message: "Primary Sale not found" });
+    const sale = await PrimarySale.findByIdAndUpdate(req.params.id, value, {
+      new: true,
+    });
 
-    return res.status(200).json({
+    if (!sale) {
+      return res.status(404).json({
+        success: false,
+        message: "Primary Sale not found",
+      });
+    }
+
+    res.status(200).json({
       success: true,
       message: "Primary Sale updated successfully",
-      data: updatedPrimarySale,
+      data: sale,
     });
   } catch (err: any) {
-    return res
-      .status(500)
-      .json({ success: false, message: err.message || "Server Error" });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Delete Primary Sale by ID
+// DELETE
 export const deletePrimarySale = async (req: Request, res: Response) => {
   try {
-    const deletedPrimarySale = await Distributor.findByIdAndDelete(
-      req.params.id
-    );
-    if (!deletedPrimarySale)
-      return res
-        .status(404)
-        .json({ success: false, message: "Primary Sale not found" });
+    const sale = await PrimarySale.findByIdAndDelete(req.params.id);
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Primary Sale deleted successfully" });
+    if (!sale) {
+      return res.status(404).json({
+        success: false,
+        message: "Primary Sale not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Primary Sale deleted successfully",
+    });
   } catch (err: any) {
-    return res
-      .status(500)
-      .json({ success: false, message: err.message || "Server Error" });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
   try {
-    const distributorName = req.body.distributorName;
-    const area = req.body.area || "Unknown";
-
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ success: false, message: "CSV file is required" });
-    }
-    if (!distributorName) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Distributor is required" });
+      return res.status(400).json({
+        success: false,
+        message: "CSV file is required",
+      });
     }
 
-    // Parse CSV from memory
     const csvString = req.file.buffer.toString("utf-8");
+
     const parsed = Papa.parse(csvString, {
       header: true,
       skipEmptyLines: true,
     });
+
     const rows = parsed.data as any[];
 
     if (!rows.length) {
-      return res.status(400).json({ success: false, message: "CSV is empty" });
+      return res.status(400).json({
+        success: false,
+        message: "CSV file is empty",
+      });
     }
 
-    // Create products array
-    const products = rows.map((row) => ({
-      sku: row.sku,
-      productName: row.productName,
-      openBalance: Number(row.openBalance) || 0,
-      purchaseQNT: Number(row.purchaseQNT) || 0,
-      saleQty: Number(row.saleQty) || 0,
-      purchaseReturn: Number(row.purchaseReturn) || 0,
-      saleReturnQNT: Number(row.saleReturnQNT) || 0,
-      netSale: Number(row.netSale) || 0,
-      floorStockValue: Number(row.floorStockValue) || 0,
-    }));
+    // 🔹 Group rows by orderId
+    const orderMap: Record<string, any> = {};
 
-    // Aggregate sale values
-    const primarySaleData = {
-      distributorName,
-      area,
-      primarySale: products.reduce((sum, p) => sum + p.saleQty, 0),
-      totalSaleQNT: products.reduce((sum, p) => sum + p.netSale, 0),
-      floorStockQNT: products.reduce((sum, p) => sum + p.openBalance, 0),
-      floorStockValue: products.reduce((sum, p) => sum + p.floorStockValue, 0),
-      status: "active",
-      products,
-    };
+    for (const row of rows) {
+      if (!orderMap[row.orderId]) {
+        orderMap[row.orderId] = {
+          orderId: row.orderId,
+          mrName: row.mrName,
+          distributorName: row.distributorName,
+          pharmacyId: row.pharmacyId,
+          address: row.address,
+          medicines: [],
+          subtotal: Number(row.subtotal) || 0,
+          discount: Number(row.discount) || 0,
+          total: Number(row.total) || 0,
+          IStatus: true,
+        };
+      }
 
-    await Distributor.create(primarySaleData);
+      orderMap[row.orderId].medicines.push({
+        medicineId: row.medicineId,
+        quantity: Number(row.quantity) || 1,
+      });
+    }
 
-    return res.status(200).json({
+    const orders = Object.values(orderMap);
+
+    await PrimarySale.insertMany(orders);
+
+    return res.status(201).json({
       success: true,
-      message: `Primary Sale created with ${products.length} products`,
+      message: `${orders.length} primary sales uploaded successfully`,
     });
   } catch (err: any) {
     console.error("Bulk Upload Error:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: err.message || "Server Error" });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Server Error",
+    });
   }
 };

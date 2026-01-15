@@ -1,33 +1,60 @@
-import mongoose from "mongoose";
-const ProductSchema = new mongoose.Schema({
-  sku: { type: String, required: true },
-  productName: { type: String, required: true },
-  openBalance: { type: Number, default: 0 },
-  purchaseQNT: { type: Number, default: 0 },
-  saleQty: { type: Number, default: 0 },
-  purchaseReturn: { type: Number, default: 0 },
-  saleReturnQNT: { type: Number, default: 0 },
-  netSale: { type: Number, default: 0 },
-  floorStockValue: { type: Number, default: 0 },
-});
+import mongoose, { Schema, Document } from "mongoose";
 
-const DistributorSchema = new mongoose.Schema(
+export interface IPrimarySale extends Document {
+  orderId: string;
+  mrName: string;
+  distributorName: string;
+  pharmacyId: mongoose.Types.ObjectId;
+  address: string;
+  medicines: {
+    medicineName: string; // store name directly
+    quantity: number;
+  }[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  IStatus?: boolean;
+}
+
+const primarySaleSchema = new Schema<IPrimarySale>(
   {
-    distributorId: {
-      type: String,
-      unique: true,
-      default: () => `D-${Date.now()}`,
-    },
+    orderId: { type: String, required: true, unique: true },
+
+    mrName: { type: String, required: true },
+
     distributorName: { type: String, required: true },
-    area: { type: String, required: true },
-    primarySale: { type: Number, default: 0 },
-    totalSaleQNT: { type: Number, default: 0 },
-    floorStockQNT: { type: Number, default: 0 },
-    floorStockValue: { type: Number, default: 0 },
-    status: { type: String, default: "active" },
-    products: [ProductSchema],
+
+    pharmacyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Pharmacy",
+      required: true,
+    },
+
+    address: { type: String, required: true },
+
+    medicines: [
+      {
+        medicineId: {
+          type: Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: { type: Number, required: true },
+      },
+    ],
+
+    subtotal: { type: Number, required: true },
+
+    discount: { type: Number, default: 0 },
+
+    total: { type: Number, required: true },
+
+    IStatus: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-export const Distributor = mongoose.model("Distributor", DistributorSchema);
+export const PrimarySale = mongoose.model<IPrimarySale>(
+  "PrimarySale",
+  primarySaleSchema
+);

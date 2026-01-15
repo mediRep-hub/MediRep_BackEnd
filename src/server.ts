@@ -21,10 +21,10 @@ dotenv.config();
 
 const app = express();
 
+// ✅ Middlewares
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS
 const allowedOrigins = [
   "http://localhost:5173",
   "https://medi-rep-front-end.vercel.app",
@@ -39,7 +39,7 @@ app.use(
   })
 );
 
-// Default route
+// ✅ Root route
 app.get("/", (_req, res) => {
   res.status(200).json({
     message: "✅ Backend running successfully!",
@@ -47,44 +47,30 @@ app.get("/", (_req, res) => {
   });
 });
 
-// MongoDB connection
-let isConnected = false;
-async function ensureDBConnection() {
-  if (!isConnected) {
-    try {
-      await dbConnect();
-      console.log("✅ MongoDB connected");
-      isConnected = true;
-    } catch (err) {
-      console.error("❌ DB connection failed:", err);
-    }
-  }
-}
-app.use(async (_req, _res, next) => {
-  await ensureDBConnection();
-  next();
-});
-
-// Mount routes
+// ✅ Mount routes
 app.use("/admin", adminRouter);
 app.use("/doctor", doctorRouter);
 app.use("/product", productRoutes);
-app.use("/pharmacy", pharmacyRoutes);
 app.use("/brick", callBrickRoutes);
 app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
+app.use("/pharmacy", pharmacyRoutes);
 app.use("/primarySale", primarySale);
 app.use("/group", groupBrick);
 
 app.use(ErrorHandler);
 
+// ✅ Create HTTP server
 const server = createServer(app);
+
+// ✅ WebSocket setup
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws: WebSocket) => {
   console.log("New WebSocket client connected");
   ws.send(JSON.stringify({ message: "Welcome to WebSocket server!" }));
+
   ws.on("message", (data) => {
     console.log("Received from client:", data.toString());
     wss.clients.forEach((client) => {
@@ -99,9 +85,21 @@ wss.on("connection", (ws: WebSocket) => {
   });
 });
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// ✅ Start server with DB connection
+async function startServer() {
+  try {
+    await dbConnect();
+    console.log("✅ MongoDB connected");
+
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;
