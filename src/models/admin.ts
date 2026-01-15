@@ -25,7 +25,7 @@ const adminSchema: Schema<IAdmin> = new Schema(
     phoneNumber: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    image: { type: String },
+    image: { type: String, required: true },
 
     division: { type: String, required: true },
     area: { type: String, required: true },
