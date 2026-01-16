@@ -20,6 +20,7 @@ const dbConnect = async () => {
     mongoose.set("strictQuery", false);
     cached.promise = mongoose
       .connect(uri, {
+        dbName: "medi-rep",
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
