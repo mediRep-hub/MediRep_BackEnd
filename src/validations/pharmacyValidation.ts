@@ -31,7 +31,7 @@ export const validatePharmacyData = (data: any) => {
       .messages({
         "string.pattern.base": "End time must be in HH:mm format",
       }),
-    region: Joi.string().optional().allow(""),
+    brick: Joi.string().optional().allow(""),
     area: Joi.string().optional().allow(""),
     affiliation: Joi.string().optional().allow(""),
     image: Joi.string().uri().optional().allow("").messages({
