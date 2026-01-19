@@ -9,7 +9,7 @@ export interface IDoctor extends Document {
   startTime: string;
   endTime: string;
   brick: string;
-  area: string;
+  city: string;
   affiliation: string;
   image: string;
 
@@ -30,7 +30,7 @@ const DoctorSchema: Schema = new Schema(
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     brick: { type: String, required: true },
-    area: { type: String, required: true },
+    city: { type: String, required: true },
     affiliation: { type: String, required: true },
     image: { type: String, required: true },
     location: {

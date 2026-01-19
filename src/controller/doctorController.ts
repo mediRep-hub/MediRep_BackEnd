@@ -37,7 +37,7 @@ export const addDoctor = async (req: Request, res: Response) => {
       startTime,
       endTime,
       brick,
-      area,
+      city,
       affiliation,
       profileType,
       image,
@@ -83,7 +83,7 @@ export const addDoctor = async (req: Request, res: Response) => {
       startTime,
       endTime,
       brick,
-      area,
+      city,
       affiliation,
       profileType,
       image,
@@ -118,10 +118,10 @@ export const addDoctor = async (req: Request, res: Response) => {
 // ✅ Get all doctors
 export const getAllDoctorslist = async (req: Request, res: Response) => {
   try {
-    const { area } = req.query; // get area from query params
+    const { city } = req.query; // get city from query params
     const filter: any = {};
-    if (area && area !== "All") {
-      filter.area = area; // filter by area if provided
+    if (city && city !== "All") {
+      filter.city = city; // filter by city if provided
     }
 
     const doctors = await Doctor.find(filter).sort({ createdAt: -1 });
@@ -302,7 +302,7 @@ export const uploadCSVDoctor = async (req, res) => {
           startTime: r.startTime || r.StartTime || "",
           endTime: r.endTime || r.EndTime || "",
           brick: r.brick || r.brick || "",
-          area: r.area || r.Area || "",
+          city: r.city || r.city || "",
           affiliation: r.affiliation || r.Affiliation || "",
           image: r.image || r.Image || "",
           location: {

@@ -28,7 +28,7 @@ export const validateDoctorData = (data: any) => {
         "string.pattern.base": "End time must be in HH:mm format",
       }),
     brick: Joi.string().optional().allow(""),
-    area: Joi.string().optional().allow(""),
+    city: Joi.string().optional().allow(""),
     affiliation: Joi.string().optional().allow(""),
     image: Joi.string().uri().optional().allow("").messages({
       "string.uri": "Image must be a valid URL",

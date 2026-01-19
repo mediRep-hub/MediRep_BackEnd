@@ -141,6 +141,7 @@ export const deletePrimarySale = async (req: Request, res: Response) => {
 
 export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
   try {
+    // 1️⃣ Check if file exists
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -148,8 +149,17 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
       });
     }
 
-    const csvString = req.file.buffer.toString("utf-8");
+    // 2️⃣ Check if distributorName exists in form data
+    const distributorName = req.body.distributorName;
+    if (!distributorName) {
+      return res.status(400).json({
+        success: false,
+        message: "Distributor name is required",
+      });
+    }
 
+    // 3️⃣ Parse CSV file
+    const csvString = req.file.buffer.toString("utf-8");
     const parsed = Papa.parse(csvString, {
       header: true,
       skipEmptyLines: true,
@@ -164,15 +174,19 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
       });
     }
 
-    // 🔹 Group rows by orderId
+    // 4️⃣ Group rows by orderId
     const orderMap: Record<string, any> = {};
 
     for (const row of rows) {
-      if (!orderMap[row.orderId]) {
-        orderMap[row.orderId] = {
-          orderId: row.orderId,
+      const orderId = row.orderId?.trim();
+
+      if (!orderId) continue; // skip rows without orderId
+
+      if (!orderMap[orderId]) {
+        orderMap[orderId] = {
+          orderId,
           mrName: row.mrName,
-          distributorName: row.distributorName,
+          distributorName, // from req.body
           pharmacyId: row.pharmacyId,
           address: row.address,
           medicines: [],
@@ -183,7 +197,7 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
         };
       }
 
-      orderMap[row.orderId].medicines.push({
+      orderMap[orderId].medicines.push({
         medicineId: row.medicineId,
         quantity: Number(row.quantity) || 1,
       });
@@ -191,6 +205,14 @@ export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
 
     const orders = Object.values(orderMap);
 
+    if (!orders.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid orders found in CSV",
+      });
+    }
+
+    // 5️⃣ Insert orders into MongoDB
     await PrimarySale.insertMany(orders);
 
     return res.status(201).json({
