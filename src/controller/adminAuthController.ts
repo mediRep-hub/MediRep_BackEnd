@@ -21,7 +21,7 @@ interface AdminWithDistributor extends IAdmin {
     name: string;
     email: string;
     phoneNumber: string;
-    area: string;
+    city: string;
     ownerName: string;
   } | null;
 }
@@ -42,8 +42,7 @@ const adminAuthController = {
         .messages({ "any.only": "Passwords do not match" }),
       image: Joi.string().optional(),
       division: Joi.string().required(), // e.g., Admin, Distributor, MR
-      area: Joi.string().required(),
-      region: Joi.string().required(),
+      city: Joi.string().required(),
       strategy: Joi.string().required(),
       position: Joi.string().required(),
       ownerName: Joi.string().when("division", {
@@ -65,8 +64,7 @@ const adminAuthController = {
       password,
       image,
       division,
-      area,
-      region,
+      city,
       strategy,
       position,
       ownerName,
@@ -115,8 +113,7 @@ const adminAuthController = {
         password: hashedPassword,
         image,
         division,
-        area,
-        region,
+        city,
         strategy,
         position,
         ownerName,
@@ -126,7 +123,7 @@ const adminAuthController = {
       if (division === "MR") {
         const distributor = await Admin.findOne({
           division: "Distributor",
-          area: area,
+          city: city,
         });
         if (distributor) {
           (adminToRegister as any).distributor = distributor._id;
@@ -195,14 +192,12 @@ const adminAuthController = {
       // 🔑 Dynamically attach distributor if MR
       let distributorInfo = null;
       if (admin.position === "MedicalRep(MR)") {
-        // Always fetch the distributor for the same area
+        // Always fetch the distributor for the same city
         const distributor = await Admin.findOne({
           division: "Distributor",
-          area: admin.area, // same area as MR
+          city: admin.city, // same city as MR
         })
-          .select(
-            "name email phoneNumber area region strategy position ownerName"
-          )
+          .select("name email phoneNumber city strategy position ownerName")
           .lean();
 
         if (distributor) distributorInfo = distributor;
@@ -236,7 +231,7 @@ const adminAuthController = {
       return res.status(200).json({
         admin: {
           ...adminSafe,
-          distributor: distributorInfo, // this will show for all MRs in the same area
+          distributor: distributorInfo, // this will show for all MRs in the same city
         },
         auth: true,
         token: accessToken,
@@ -283,7 +278,7 @@ const adminAuthController = {
         email: { $ne: "SuperAdmin@gmail.com" },
       })
         .select(
-          "adminId name email phoneNumber division ownerName area region strategy position image"
+          "adminId name email phoneNumber division ownerName city strategy position image"
         )
         .skip(skip)
         .limit(limit)
@@ -312,8 +307,7 @@ const adminAuthController = {
       confirmPassword,
       image,
       division,
-      area,
-      region,
+      city,
       strategy,
       position,
       ownerName,
@@ -336,8 +330,7 @@ const adminAuthController = {
       if (phoneNumber) admin.phoneNumber = phoneNumber;
       if (email) admin.email = email;
       if (image) admin.image = image;
-      if (area) admin.area = area;
-      if (region) admin.region = region;
+      if (city) admin.city = city;
       if (strategy) admin.strategy = strategy;
       if (position) admin.position = position;
 
