@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { primarySaleValidation } from "../validations/primarySalesValidation";
-import { PrimarySale } from "../models/primarySales";
+import { primarySaleValidation } from "../validations/secondarySalesValidation";
+import { PrimarySale } from "../models/SecondarySales";
 import { Order } from "../models/orderModel";
 
 const Papa = require("papaparse");
-export const createPrimarySale = async (req: Request, res: Response) => {
+export const createSecondarySale = async (req: Request, res: Response) => {
   try {
     const { error, value } = primarySaleValidation.validate(req.body, {
       abortEarly: false,
@@ -32,7 +32,7 @@ export const createPrimarySale = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllPrimarySales = async (_req: Request, res: Response) => {
+export const getAllSecondarySales = async (_req: Request, res: Response) => {
   try {
     // Get PrimarySale documents where IStatus is true
     const primarySales = await PrimarySale.find({ IStatus: true })
@@ -66,7 +66,7 @@ export const getAllPrimarySales = async (_req: Request, res: Response) => {
 };
 
 // GET BY ID
-export const getPrimarySaleById = async (req: Request, res: Response) => {
+export const getSecondarySaleById = async (req: Request, res: Response) => {
   try {
     const sale = await PrimarySale.findById(req.params.id);
 
@@ -84,7 +84,7 @@ export const getPrimarySaleById = async (req: Request, res: Response) => {
 };
 
 // UPDATE
-export const updatePrimarySale = async (req: Request, res: Response) => {
+export const updateSecondarySale = async (req: Request, res: Response) => {
   try {
     const { error, value } = primarySaleValidation.validate(req.body, {
       abortEarly: false,
@@ -119,7 +119,7 @@ export const updatePrimarySale = async (req: Request, res: Response) => {
 };
 
 // DELETE
-export const deletePrimarySale = async (req: Request, res: Response) => {
+export const deleteSecondarySale = async (req: Request, res: Response) => {
   try {
     const sale = await PrimarySale.findByIdAndDelete(req.params.id);
 
@@ -139,7 +139,7 @@ export const deletePrimarySale = async (req: Request, res: Response) => {
   }
 };
 
-export const uploadBulkPrimarySales = async (req: Request, res: Response) => {
+export const uploadBulkSecondarySales = async (req: Request, res: Response) => {
   try {
     // 1️⃣ Check if file exists
     if (!req.file) {

@@ -12,7 +12,7 @@ import pharmacyRoutes from "../src/routes/pharmacyRoutes";
 import uploadFileRoutes from "../src/routes/uploadRoute.js";
 import orderRoutes from "../src/routes/orderRoutes.js";
 import ErrorHandler from "../src/middlewares/errorHandler.js";
-import primarySale from "../src/routes/primarySalesRoutes";
+import secondarySale from "../src/routes/SecondarySalesRoutes";
 import groupBrick from "../src/routes/brickGroupRoutes";
 
 dotenv.config();
@@ -55,7 +55,7 @@ app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
 app.use("/pharmacy", pharmacyRoutes);
-app.use("/primarySale", primarySale);
+app.use("/secondarySale", secondarySale);
 app.use("/group", groupBrick);
 
 app.use(ErrorHandler);

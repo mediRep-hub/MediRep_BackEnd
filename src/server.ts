@@ -10,7 +10,7 @@ import requisitionRoutes from "./routes/requisitionRoute";
 import uploadFileRoutes from "./routes/uploadRoute";
 import orderRoutes from "./routes/orderRoutes";
 import pharmacyRoutes from "./routes/pharmacyRoutes";
-import primarySale from "./routes/primarySalesRoutes";
+import secondarySale from "./routes/SecondarySalesRoutes";
 import groupBrick from "./routes/brickGroupRoutes";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
@@ -56,7 +56,7 @@ app.use("/requisition", requisitionRoutes);
 app.use("/upload", uploadFileRoutes);
 app.use("/orders", orderRoutes);
 app.use("/pharmacy", pharmacyRoutes);
-app.use("/primarySale", primarySale);
+app.use("/secondarySale", secondarySale);
 app.use("/group", groupBrick);
 
 app.use(ErrorHandler);
