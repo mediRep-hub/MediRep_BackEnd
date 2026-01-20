@@ -11,6 +11,7 @@ export interface IDoctor extends Document {
   brick: string;
   city: string;
   affiliation: string;
+  0;
   image: string;
 
   location: {
@@ -39,7 +40,7 @@ const DoctorSchema: Schema = new Schema(
       lng: { type: Number, required: true },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model<IDoctor>("Doctor", DoctorSchema);

@@ -10,6 +10,7 @@ export interface IPharmacy extends Document {
   pharmacyClass: string;
   brick: string;
   city: string;
+  DSL: string;
   affiliation: string;
   image: string;
   location: {
@@ -33,6 +34,7 @@ const PharmacySchema: Schema = new Schema(
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
     brick: { type: String, required: true },
+    DSL: { type: String, required: true },
     pharmacyClass: { type: String, required: true },
     city: { type: String, required: true },
     affiliation: { type: String, required: true },
