@@ -14,9 +14,9 @@ export const validatePharmacyData = (data: any) => {
     phone: Joi.string().optional().allow("").messages({
       "string.base": "Phone must be a string",
     }),
-    channel: Joi.string().optional().allow("").messages({
-      "string.base": "channel must be a string",
-    }),
+    // channel: Joi.string().optional().allow("").messages({
+    //   "string.base": "channel must be a string",
+    // }),
     startTime: Joi.string()
       .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
       .optional()
@@ -32,6 +32,7 @@ export const validatePharmacyData = (data: any) => {
         "string.pattern.base": "End time must be in HH:mm format",
       }),
     brick: Joi.string().optional().allow(""),
+    pharmacyClass: Joi.string().optional().allow(""),
     city: Joi.string().optional().allow(""),
     affiliation: Joi.string().optional().allow(""),
     image: Joi.string().uri().optional().allow("").messages({

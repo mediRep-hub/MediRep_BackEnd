@@ -38,6 +38,7 @@ export const addPharmacy = async (req: Request, res: Response) => {
       startTime,
       endTime,
       brick,
+      pharmacyClass,
       city,
       affiliation,
       profileType,
@@ -65,6 +66,7 @@ export const addPharmacy = async (req: Request, res: Response) => {
       phone,
       startTime,
       endTime,
+      pharmacyClass,
       brick,
       city,
       affiliation,
@@ -252,7 +254,7 @@ export const uploadCSVPharmacy = async (req, res) => {
         if ((!lat || !lng) && fullAddress) {
           try {
             const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-              fullAddress
+              fullAddress,
             )}&key=${apiKey}`;
 
             const response = await axios.get(url);
@@ -277,6 +279,7 @@ export const uploadCSVPharmacy = async (req, res) => {
           endTime: r.endTime || r.EndTime || "",
           brick: r.brick || r.brick || "",
           city: r.city || r.city || "",
+          pharmacyClass: r.pharmacyClass || r.pharmacyClass || "",
           affiliation: r.affiliation || r.Affiliation || "",
           image: r.image || r.Image || "",
           location: {
@@ -285,7 +288,7 @@ export const uploadCSVPharmacy = async (req, res) => {
             lng,
           },
         };
-      })
+      }),
     );
 
     const inserted = await Pharmacy.insertMany(pharmaciesWithData, {

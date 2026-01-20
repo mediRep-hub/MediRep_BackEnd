@@ -32,10 +32,9 @@ export interface IDoctorSubDoc extends Document {
 // ---------------- MAIN DOCUMENT ----------------
 
 export interface IBrick extends Document {
-  region?: string;
-  area?: string;
+  city?: string;
+  planType: string;
   brickName?: string;
-  route?: string;
   day?: string;
   mrName: Types.ObjectId;
   doctorList: Types.DocumentArray<IDoctorSubDoc>;
@@ -83,16 +82,15 @@ const doctorSubSchema = new Schema<IDoctorSubDoc>({
 
 const brickSchema = new Schema<IBrick>(
   {
-    region: { type: String },
-    area: { type: String },
+    city: { type: String },
     brickName: { type: String },
-    route: { type: String },
+    planType: { type: String },
     day: { type: String },
     mrName: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
     doctorList: [doctorSubSchema],
     products: [{ type: String, required: true }], // ✅ array of strings
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ---------------- STATIC METHOD ----------------
