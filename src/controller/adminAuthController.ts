@@ -135,11 +135,11 @@ const adminAuthController = {
       // Generate JWT tokens
       const accessToken = JWTService.signAccessToken(
         { _id: admin._id.toString() },
-        "365d"
+        "365d",
       );
       const refreshToken = JWTService.signRefreshToken(
         { _id: admin._id.toString() },
-        "365d"
+        "365d",
       );
 
       await JWTService.storeRefreshToken(refreshToken, undefined, admin._id);
@@ -206,22 +206,22 @@ const adminAuthController = {
       // Generate tokens
       const accessToken = JWTService.signAccessToken(
         { _id: admin._id.toString() },
-        "365d"
+        "365d",
       );
       const refreshToken = JWTService.signRefreshToken(
         { _id: admin._id.toString() },
-        "365d"
+        "365d",
       );
 
       await RefreshToken.updateOne(
         { adminId: admin._id },
         { token: refreshToken },
-        { upsert: true }
+        { upsert: true },
       );
       await AccessToken.updateOne(
         { adminId: admin._id },
         { token: accessToken },
-        { upsert: true }
+        { upsert: true },
       );
 
       // Remove password
@@ -278,7 +278,7 @@ const adminAuthController = {
         email: { $ne: "SuperAdmin@gmail.com" },
       })
         .select(
-          "adminId name email phoneNumber division ownerName city strategy position image"
+          "adminId name email phoneNumber division ownerName city strategy position image",
         )
         .skip(skip)
         .limit(limit)
@@ -386,6 +386,40 @@ const adminAuthController = {
       res.status(200).json({ message: "Account deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  // Update password by admin ID (no old password required)
+  async updatePassword(req: Request, res: Response, next: NextFunction) {
+    const { id } = req.params; // get id from URL
+    const { password } = req.body; // get new password from body
+
+    if (!password) {
+      return next({ status: 400, message: "Password is required" });
+    }
+
+    // Use your existing password pattern
+    const passwordPattern =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?/\\|-])[a-zA-Z\d!@#$%^&*()_+{}\[\]:;<>,.?/\\|-]{8,25}$/;
+
+    if (!passwordPattern.test(password)) {
+      return next({
+        status: 400,
+        message:
+          "Password must include 1 uppercase, 1 special character, 1 digit, 8-25 characters long",
+      });
+    }
+
+    try {
+      const admin = await Admin.findById(id);
+      if (!admin) return next({ status: 404, message: "Admin not found" });
+
+      admin.password = await bcrypt.hash(password, 10);
+      await admin.save();
+
+      return res.status(200).json({ message: "Password updated successfully" });
+    } catch (err) {
+      return next(err);
     }
   },
 };
