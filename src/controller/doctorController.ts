@@ -37,6 +37,7 @@ export const addDoctor = async (req: Request, res: Response) => {
       startTime,
       endTime,
       brick,
+      doctorClass,
       city,
       affiliation,
       profileType,
@@ -81,6 +82,7 @@ export const addDoctor = async (req: Request, res: Response) => {
       email,
       phone,
       startTime,
+      doctorClass,
       endTime,
       brick,
       city,
@@ -279,7 +281,7 @@ export const uploadCSVDoctor = async (req, res) => {
         if ((!lat || !lng) && fullAddress) {
           try {
             const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-              fullAddress
+              fullAddress,
             )}&key=${apiKey}`;
 
             const response = await axios.get(url);
@@ -297,6 +299,7 @@ export const uploadCSVDoctor = async (req, res) => {
           docId: r.docId || `DOC${Math.floor(1000 + Math.random() * 9000)}`,
           name: r.name || r.Name || "",
           specialty: r.specialty || r.Specialty || "",
+          doctorClass: r.doctorClass || r.doctorClass || "",
           email: r.email || r.Email || "",
           phone: r.phone || r.Phone || "",
           startTime: r.startTime || r.StartTime || "",
@@ -311,7 +314,7 @@ export const uploadCSVDoctor = async (req, res) => {
             lng,
           },
         };
-      })
+      }),
     );
     const inserted = await Doctor.insertMany(doctorsWithData, {
       ordered: false,

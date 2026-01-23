@@ -39,7 +39,6 @@ export const addPharmacy = async (req: Request, res: Response) => {
       endTime,
       brick,
       DSL,
-      pharmacyClass,
       city,
       affiliation,
       profileType,
@@ -68,7 +67,6 @@ export const addPharmacy = async (req: Request, res: Response) => {
       startTime,
       endTime,
       DSL,
-      pharmacyClass,
       brick,
       city,
       affiliation,
@@ -282,7 +280,6 @@ export const uploadCSVPharmacy = async (req, res) => {
           brick: r.brick || r.brick || "",
           city: r.city || r.city || "",
           DSL: r.DSL || r.DSL || "",
-          pharmacyClass: r.pharmacyClass || r.pharmacyClass || "",
           affiliation: r.affiliation || r.Affiliation || "",
           image: r.image || r.Image || "",
           location: {

@@ -12,6 +12,7 @@ export const validateDoctorData = (data: any) => {
     email: Joi.string().email().optional().allow("").messages({
       "string.email": "Invalid email format",
     }),
+    doctorClass: Joi.string().optional().allow(""),
     phone: Joi.string().optional().allow(""),
     startTime: Joi.string()
       .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
