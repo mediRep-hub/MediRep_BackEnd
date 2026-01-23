@@ -9,10 +9,10 @@ export interface IDoctor extends Document {
   doctorClass: string;
   startTime: string;
   endTime: string;
+  PMDC: string;
   brick: string;
   city: string;
   affiliation: string;
-  0;
   image: string;
 
   location: {
@@ -29,6 +29,7 @@ const DoctorSchema: Schema = new Schema(
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
     specialty: { type: String, required: true },
+    PMDC: { type: String, required: true },
     doctorClass: { type: String, required: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
