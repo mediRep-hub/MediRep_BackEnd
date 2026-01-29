@@ -14,6 +14,7 @@ export interface IAdmin extends Document {
   position: string;
   createdAt?: Date;
   updatedAt?: Date;
+  brickName?: string;
   ownerName: string;
 }
 
@@ -30,17 +31,22 @@ const adminSchema: Schema<IAdmin> = new Schema(
     city: { type: String, required: true },
     strategy: { type: String, required: true },
     position: { type: String, required: true },
-
     ownerName: {
       type: String,
       required: function () {
         return this.division === "Distributor";
       },
     },
+    brickName: {
+      type: String,
+      required: function () {
+        return this.division !== "Distributor";
+      },
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const Admin: Model<IAdmin> = mongoose.model<IAdmin>("Admin", adminSchema);

@@ -52,6 +52,14 @@ const adminAuthController = {
         }),
         otherwise: Joi.string().allow(""), // <-- Fix
       }),
+      brickName: Joi.string().when("division", {
+        not: "Distributor", // if division is NOT Distributor
+        then: Joi.string().required().messages({
+          "any.required":
+            "Brick Name is required for non-Distributor divisions",
+        }),
+        otherwise: Joi.string().optional().allow(""), // optional for Distributor
+      }),
     });
 
     const { error } = adminRegisterSchema.validate(req.body);
@@ -65,6 +73,7 @@ const adminAuthController = {
       image,
       division,
       city,
+      brickName,
       strategy,
       position,
       ownerName,
@@ -115,6 +124,7 @@ const adminAuthController = {
         division,
         city,
         strategy,
+        brickName,
         position,
         ownerName,
       });
@@ -197,7 +207,9 @@ const adminAuthController = {
           division: "Distributor",
           city: admin.city, // same city as MR
         })
-          .select("name email phoneNumber city strategy position ownerName")
+          .select(
+            "name email phoneNumber city brickName strategy position ownerName",
+          )
           .lean();
 
         if (distributor) distributorInfo = distributor;
@@ -278,7 +290,7 @@ const adminAuthController = {
         email: { $ne: "SuperAdmin@gmail.com" },
       })
         .select(
-          "adminId name email phoneNumber division ownerName city strategy position image",
+          "adminId name email phoneNumber division ownerName brickName city strategy position image",
         )
         .skip(skip)
         .limit(limit)
@@ -308,11 +320,11 @@ const adminAuthController = {
       image,
       division,
       city,
+      brickName,
       strategy,
       position,
       ownerName,
     } = req.body;
-
     try {
       if (!Types.ObjectId.isValid(id)) {
         return next({ status: 400, message: "Invalid Account ID" });
@@ -335,12 +347,13 @@ const adminAuthController = {
       if (position) admin.position = position;
 
       // -----------------------------
-      // Handle Division + OwnerName Logic
+      // Handle Division + OwnerName + BrickName Logic
       // -----------------------------
       if (division) {
         admin.division = division;
 
         if (division === "Distributor") {
+          // Owner Name required for Distributor
           if (!ownerName) {
             return next({
               status: 400,
@@ -348,8 +361,21 @@ const adminAuthController = {
             });
           }
           admin.ownerName = ownerName;
+
+          // Brick Name is optional for Distributor
+          admin.brickName = ""; // Clear brickName
         } else {
-          admin.ownerName = ""; // Clear when division is NOT Distributor
+          // Owner Name cleared for non-Distributor
+          admin.ownerName = "";
+
+          // Brick Name required for non-Distributor
+          if (!brickName) {
+            return next({
+              status: 400,
+              message: "Brick Name is required for non-Distributor divisions",
+            });
+          }
+          admin.brickName = brickName;
         }
       }
 

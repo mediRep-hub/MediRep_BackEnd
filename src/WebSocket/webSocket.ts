@@ -1,5 +1,5 @@
-// export const ws = new WebSocket("http://localhost:5001");
-export const ws = new WebSocket("https://medi-rep-back-end.vercel.app/");
+export const ws = new WebSocket("http://localhost:5001");
+// export const ws = new WebSocket("https://medi-rep-back-end.vercel.app");
 const messageQueue: string[] = [];
 
 ws.onopen = () => {
