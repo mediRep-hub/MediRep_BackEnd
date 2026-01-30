@@ -43,7 +43,6 @@ const adminAuthController = {
       image: Joi.string().optional(),
       division: Joi.string().required(), // e.g., Admin, Distributor, MR
       city: Joi.string().required(),
-      strategy: Joi.string().required(),
       position: Joi.string().required(),
       ownerName: Joi.string().when("division", {
         is: "Distributor",
@@ -74,7 +73,6 @@ const adminAuthController = {
       division,
       city,
       brickName,
-      strategy,
       position,
       ownerName,
     } = req.body;
@@ -123,7 +121,6 @@ const adminAuthController = {
         image,
         division,
         city,
-        strategy,
         brickName,
         position,
         ownerName,
@@ -207,9 +204,7 @@ const adminAuthController = {
           division: "Distributor",
           city: admin.city, // same city as MR
         })
-          .select(
-            "name email phoneNumber city brickName strategy position ownerName",
-          )
+          .select("name email phoneNumber city brickName position ownerName")
           .lean();
 
         if (distributor) distributorInfo = distributor;
@@ -290,7 +285,7 @@ const adminAuthController = {
         email: { $ne: "SuperAdmin@gmail.com" },
       })
         .select(
-          "adminId name email phoneNumber division ownerName brickName city strategy position image",
+          "adminId name email phoneNumber division ownerName brickName city position image",
         )
         .skip(skip)
         .limit(limit)
@@ -321,7 +316,6 @@ const adminAuthController = {
       division,
       city,
       brickName,
-      strategy,
       position,
       ownerName,
     } = req.body;
@@ -343,7 +337,6 @@ const adminAuthController = {
       if (email) admin.email = email;
       if (image) admin.image = image;
       if (city) admin.city = city;
-      if (strategy) admin.strategy = strategy;
       if (position) admin.position = position;
 
       // -----------------------------

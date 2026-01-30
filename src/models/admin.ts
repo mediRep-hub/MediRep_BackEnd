@@ -10,7 +10,6 @@ export interface IAdmin extends Document {
   image?: string;
   division: string;
   city: string;
-  strategy: string;
   position: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -29,7 +28,6 @@ const adminSchema: Schema<IAdmin> = new Schema(
 
     division: { type: String, required: true },
     city: { type: String, required: true },
-    strategy: { type: String, required: true },
     position: { type: String, required: true },
     ownerName: {
       type: String,
