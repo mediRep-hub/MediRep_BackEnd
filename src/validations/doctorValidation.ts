@@ -12,8 +12,9 @@ export const validateDoctorData = (data: any) => {
     email: Joi.string().email().optional().allow("").messages({
       "string.email": "Invalid email format",
     }),
-    PMDC: Joi.string().allow("").optional(),
-
+    PMDC: Joi.string().optional().allow("").messages({
+      "string.base": "PMDC must be a string",
+    }),
     doctorClass: Joi.string().optional().allow(""),
     phone: Joi.string().optional().allow(""),
     startTime: Joi.string()

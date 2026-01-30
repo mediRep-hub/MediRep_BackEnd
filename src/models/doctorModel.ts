@@ -29,7 +29,7 @@ const DoctorSchema: Schema = new Schema(
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
     specialty: { type: String, required: true },
-    PMDC: { type: String, optional: true },
+    PMDC: { type: String, required: true },
     doctorClass: { type: String, required: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
