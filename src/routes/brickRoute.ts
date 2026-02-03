@@ -1,21 +1,15 @@
 import express from "express";
 import {
-  addBrick,
+  createBrick,
   getAllBricks,
   deleteBrick,
   updateBrick,
-  reorderDoctorList,
-  checkDoctorLocation,
-  statusHold,
 } from "../controller/brickController";
 
 const router = express.Router();
-router.post("/addBrick", addBrick);
+router.post("/createBrick", createBrick);
 router.get("/getAllBricks", getAllBricks);
 router.put("/updateBrick/:id", updateBrick);
-router.put("/reorderDoctorList/:id", reorderDoctorList);
 router.delete("/deleteBrick/:id", deleteBrick);
-router.post("/checkDoctorLocation", checkDoctorLocation);
-router.post("/statusHold/:id", statusHold);
 
 export default router;
