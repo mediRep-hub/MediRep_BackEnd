@@ -1,11 +1,25 @@
 import { Request, Response } from "express";
 import Brick, { IBrick } from "../models/brickModel";
 
-// GET all bricks
-export const getAllBricks = async (req: Request, res: Response) => {
+// GET a specific brick by brickName (only return brickName)
+export const getBrickByName = async (req: Request, res: Response) => {
   try {
-    const bricks = await Brick.find();
-    res.json(bricks);
+    const { brickName } = req.params;
+
+    if (!brickName) {
+      return res.status(400).json({ message: "brickName is required" });
+    }
+
+    const brick = await Brick.findOne(
+      { brickName }, // filter
+      { brickName: 1, _id: 0 }, // only return brickName
+    );
+
+    if (!brick) {
+      return res.status(404).json({ message: "Brick not found" });
+    }
+
+    res.json(brick);
   } catch (err) {
     res.status(500).json({ message: "Server Error", error: err });
   }

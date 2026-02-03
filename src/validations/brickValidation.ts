@@ -1,149 +1,68 @@
-import mongoose, { Document, Model, Types, Schema } from "mongoose";
-import { v4 as uuidv4 } from "uuid";
+import Joi from "joi";
 
-const generateShortId = () => {
-  return `CALL-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+// -------------------- Validation for creating a Brick --------------------
+export const validateCreateBrick = (data: any) => {
+  const schema = Joi.object({
+    brickName: Joi.string().trim().min(2).max(50).required().messages({
+      "string.empty": "Brick Name is required",
+      "string.min": "Brick Name must be at least 2 characters",
+      "string.max": "Brick Name must be at most 50 characters",
+    }),
+    city: Joi.string().trim().required().messages({
+      "string.empty": "City is required",
+    }),
+    mrName: Joi.string().trim().required().messages({
+      "string.empty": "MR Name is required",
+    }),
+    areas: Joi.array().items(Joi.string().trim()).messages({
+      "array.base": "Areas must be an array of strings",
+    }),
+    pharmacies: Joi.array().items(Joi.string().trim()).messages({
+      "array.base": "Pharmacies must be an array of strings",
+    }),
+    doctors: Joi.array().items(Joi.string().trim()).messages({
+      "array.base": "Doctors must be an array of strings",
+    }),
+    products: Joi.array()
+      .items(Joi.string().trim())
+      .min(1)
+      .required()
+      .messages({
+        "array.base": "Products must be an array of strings",
+        "array.min": "At least one product is required",
+      }),
+  });
+
+  return schema.validate(data, { abortEarly: false });
 };
 
-// ---------------- SUB DOCUMENT ----------------
+// -------------------- Validation for updating a Brick --------------------
+export const validateUpdateBrick = (data: any) => {
+  const schema = Joi.object({
+    brickName: Joi.string().trim().min(2).max(50).messages({
+      "string.empty": "Brick Name is required",
+      "string.min": "Brick Name must be at least 2 characters",
+      "string.max": "Brick Name must be at most 50 characters",
+    }),
+    city: Joi.string().trim().messages({
+      "string.empty": "City is required",
+    }),
+    mrName: Joi.string().trim().messages({
+      "string.empty": "MR Name is required",
+    }),
+    areas: Joi.array().items(Joi.string().trim()).messages({
+      "array.base": "Areas must be an array of strings",
+    }),
+    pharmacies: Joi.array().items(Joi.string().trim()).messages({
+      "array.base": "Pharmacies must be an array of strings",
+    }),
+    doctors: Joi.array().items(Joi.string().trim()).messages({
+      "array.base": "Doctors must be an array of strings",
+    }),
+    products: Joi.array().items(Joi.string().trim()).messages({
+      "array.base": "Products must be an array of strings",
+    }),
+  });
 
-export interface IDoctorSubDoc extends Document {
-  doctor: Types.ObjectId;
-  callId: string;
-  status: "pending" | "close" | "check In";
-  activeRequisition: string;
-  checkIn: string;
-  checkOut: string;
-  duration: string;
-  productDiscussed: string;
-  doctorResponse: string;
-  promotionalMaterialGiven: string;
-  followUpRequired: string;
-  doctorPurchaseInterest: string;
-  nextVisitDate: Date | null;
-  keyDiscussionPoints: string;
-  doctorConcerns: string;
-  discussionType: string;
-  checkInLocation: { lat: number; lng: number };
-  doctorAvailability: string;
-  reason: string;
-}
-
-// ---------------- MAIN DOCUMENT ----------------
-
-export interface IBrick extends Document {
-  city?: string;
-  brickName?: string;
-  planType?: string;
-  day?: string;
-  mrName: Types.ObjectId;
-  doctorList: Types.DocumentArray<IDoctorSubDoc>;
-  products: string[]; // array of strings
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface IBrickModel extends Model<IBrick> {
-  prepareDoctorList(doctorIds: string[]): IDoctorSubDoc[];
-}
-
-// ---------------- SUB SCHEMA ----------------
-
-const doctorSubSchema = new Schema<IDoctorSubDoc>({
-  doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
-  callId: { type: String, default: generateShortId, required: true },
-  status: {
-    type: String,
-    enum: ["pending", "close", "check In"],
-    default: "pending",
-  },
-  activeRequisition: { type: String, default: "" },
-  checkIn: { type: String, default: "" },
-  checkOut: { type: String, default: "" },
-  duration: { type: String, default: "" },
-  productDiscussed: { type: String, default: "" },
-  doctorResponse: { type: String, default: "" },
-  promotionalMaterialGiven: { type: String, default: "" },
-  followUpRequired: { type: String, default: "" },
-  doctorPurchaseInterest: { type: String, default: "" },
-  nextVisitDate: { type: Date, default: null },
-  keyDiscussionPoints: { type: String, default: "" },
-  doctorConcerns: { type: String, default: "" },
-  discussionType: { type: String, default: "" },
-  checkInLocation: {
-    lat: { type: Number, default: 0 },
-    lng: { type: Number, default: 0 },
-  },
-  doctorAvailability: { type: String, default: "" },
-  reason: { type: String, default: "" },
-});
-
-// ---------------- MAIN SCHEMA (Brick) ----------------
-
-const brickSchema = new Schema<IBrick>(
-  {
-    city: { type: String },
-    brickName: { type: String },
-    planType: { type: String },
-    day: { type: String },
-    mrName: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
-    doctorList: [doctorSubSchema],
-    products: [{ type: String, required: true }], // ✅ array of strings
-  },
-  { timestamps: true },
-);
-
-// ---------------- STATIC METHOD ----------------
-
-brickSchema.statics.prepareDoctorList = function (doctorIds: string[]) {
-  return doctorIds.map((id) => ({
-    doctor: new Types.ObjectId(id),
-    callId: `CALL-${uuidv4()}`,
-    status: "pending",
-    activeRequisition: "",
-    checkIn: "",
-    checkOut: "",
-    duration: "",
-    productDiscussed: "",
-    doctorResponse: "",
-    promotionalMaterialGiven: "",
-    followUpRequired: "",
-    doctorPurchaseInterest: "",
-    nextVisitDate: null,
-    keyDiscussionPoints: "",
-    doctorConcerns: "",
-    discussionType: "",
-    checkInLocation: { lat: 0, lng: 0 },
-    doctorAvailability: "",
-    reason: "",
-  }));
+  return schema.validate(data, { abortEarly: false });
 };
-
-// ---------------- MODEL ----------------
-
-const Brick = mongoose.model<IBrick, IBrickModel>("Brick", brickSchema);
-
-export default Brick;
-
-// export const validateCheckLocation = (data: any) => {
-//   const schema = Joi.object({
-//     callReportId: Joi.string().pattern(objectIdRegex).required().messages({
-//       "any.required": "Call Report ID is required",
-//       "string.pattern.base": "Invalid Call Report ID",
-//     }),
-//     doctorId: Joi.string().pattern(objectIdRegex).required().messages({
-//       "any.required": "Doctor ID is required",
-//       "string.pattern.base": "Invalid Doctor ID",
-//     }),
-//     lat: Joi.number().required().messages({
-//       "any.required": "Latitude is required",
-//       "number.base": "Latitude must be a number",
-//     }),
-//     lng: Joi.number().required().messages({
-//       "any.required": "Longitude is required",
-//       "number.base": "Longitude must be a number",
-//     }),
-//   });
-
-//   return schema.validate(data, { abortEarly: false });
-// };
