@@ -1,32 +1,62 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
-const ProductSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  target: { type: Number, required: true },
-  bonus: { type: Number, required: true },
-  amount: { type: Number, required: true },
-});
+// ---------------- PRODUCT SUBDOCUMENT ----------------
+export interface IProduct {
+  name: string;
+  target: number;
+  bonus: number;
+  amount: number;
+}
 
-const SalesGroupSchema = new mongoose.Schema(
+const ProductSchema = new Schema<IProduct>(
+  {
+    name: { type: String, required: true },
+    target: { type: Number, required: true },
+    bonus: { type: Number, required: true },
+    amount: { type: Number, required: true },
+  },
+  { _id: false }, // optional, prevents creating a new _id for each product
+);
+
+// ---------------- GROUP DOCUMENT ----------------
+export interface IGroup extends Document {
+  groupName: string;
+  groupType: string;
+  region: string;
+  area: string;
+  doctorList: string[];
+  manager: string;
+  teamLead: string;
+  activePeriod: string;
+  distributor: string;
+  mr: Types.ObjectId[];
+  products: IProduct[];
+}
+
+const GroupSchema = new Schema<IGroup>(
   {
     groupName: { type: String, required: true },
     groupType: { type: String, required: true },
     region: { type: String, required: true },
     area: { type: String, required: true },
-    doctors: [{ type: String, required: true }],
+    doctorList: [{ type: String, required: true }],
     manager: { type: String, required: true },
     teamLead: { type: String, required: true },
-    period: { type: String, required: true },
-    distributorName: { type: String, required: true },
+    activePeriod: { type: String, required: true },
+    distributor: { type: String, required: true },
     mr: [
       {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "Admin",
+        required: true,
       },
     ],
     products: [ProductSchema],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-export default mongoose.model("SalesGroup", SalesGroupSchema);
+// ---------------- MODEL ----------------
+const Group = mongoose.model<IGroup>("Group", GroupSchema);
+
+export default Group;

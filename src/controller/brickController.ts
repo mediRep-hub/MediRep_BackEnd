@@ -4,19 +4,17 @@ import Brick, { IBrick } from "../models/brickModel";
 // GET all bricks
 export const getAllBricks = async (req: Request, res: Response) => {
   try {
-    const { brickName } = req.query; // query parameter
+    const { brickName } = req.query;
 
     let bricks;
 
     if (brickName) {
-      // Filter by brickName
       bricks = await Brick.find({ brickName: String(brickName) });
 
       if (!bricks || bricks.length === 0) {
         return res.status(404).json({ message: "Brick not found" });
       }
     } else {
-      // Return all bricks
       bricks = await Brick.find();
     }
 

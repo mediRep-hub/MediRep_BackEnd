@@ -1,18 +1,18 @@
-import express from "express";
+import { Router } from "express";
 import {
-  createSalesGroup,
-  getAllSalesGroups,
-  getSalesGroupById,
-  updateSalesGroup,
-  deleteSalesGroup,
+  getAllGroups,
+  getGroupById,
+  createGroup,
+  updateGroup,
+  deleteGroup,
 } from "../controller/brickGroupControllers";
 
-const router = express.Router();
+const router = Router();
 
-router.post("/createSalesGroup", createSalesGroup);
-router.get("/getAllSalesGroups", getAllSalesGroups);
-router.get("/getAllSalesGroups/:id", getAllSalesGroups);
-router.put("/updateSalesGroup/:id", updateSalesGroup);
-router.delete("/deleteSalesGroup/:id", deleteSalesGroup);
+router.get("/getAllGroups", getAllGroups);
+router.get("/getGroupById/:id", getGroupById);
+router.post("/createGroup", createGroup);
+router.put("/updateGroup/:id", updateGroup);
+router.delete("/deleteGroup/:id", deleteGroup);
 
 export default router;

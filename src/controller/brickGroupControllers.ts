@@ -1,92 +1,102 @@
-import SalesGroup from "../models/brickGroupModel";
-import { SalesGroupValidation } from "../validations/brickGroupvalidation";
+import { Request, Response } from "express";
+import Group from "../models/brickGroupModel"; // default import
+import { validateGroup } from "../validations/brickGroupvalidation";
 
-// Create new Sales Group
-export const createSalesGroup = async (req, res) => {
+// ---------------- Controllers ----------------
+
+// GET all groups
+export const getAllGroups = async (req: Request, res: Response) => {
   try {
-    const { error } = SalesGroupValidation.validate(req.body);
+    const { groupName } = req.query;
+
+    let groups;
+
+    if (groupName) {
+      // Filter groups by groupName (case-insensitive)
+      groups = await Group.find({
+        groupName: { $regex: new RegExp(String(groupName), "i") },
+      }).populate("mr", "name email role");
+
+      if (!groups || groups.length === 0) {
+        return res.status(404).json({ message: "Group not found" });
+      }
+    } else {
+      // Return all groups
+      groups = await Group.find().populate("mr", "name email role");
+    }
+
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ message: "Server Error", error: err });
+  }
+};
+
+// GET group by ID
+export const getGroupById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const group = await Group.findById(id);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    res.json(group);
+  } catch (err) {
+    res.status(500).json({ message: "Server Error", error: err });
+  }
+};
+
+// CREATE group
+export const createGroup = async (req: Request, res: Response) => {
+  try {
+    // Validate request body
+    const { error } = validateGroup(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: "Validation Error",
+        details: error.details.map((d) => d.message),
+      });
+    }
+
+    const newGroup = new Group(req.body);
+    const savedGroup = await newGroup.save();
+    res.status(201).json(savedGroup);
+  } catch (err) {
+    res.status(500).json({ message: "Server Error", error: err });
+  }
+};
+
+// UPDATE group
+export const updateGroup = async (req: Request, res: Response) => {
+  try {
+    // Validate request body
+    const { error } = validateGroup(req.body);
     if (error)
-      return res
-        .status(400)
-        .json({ success: false, message: error.details[0].message });
+      return res.status(400).json({
+        message: "Validation Error",
+        details: error.details.map((d) => d.message),
+      });
 
-    const newGroup = new SalesGroup(req.body);
-    await newGroup.save();
-    res.status(201).json({ success: true, data: newGroup });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// Get all Sales Groups
-export const getAllSalesGroups = async (req, res) => {
-  try {
-    const groups = await SalesGroup.find().populate({
-      path: "mr",
-      select: "name position image",
-      match: { position: "MedicalRep(MR)" }, // 🔥 filter here
+    const { id } = req.params;
+    const updatedGroup = await Group.findByIdAndUpdate(id, req.body, {
+      new: true,
     });
-
-    res.status(200).json({
-      success: true,
-      data: groups,
-    });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
-
-// Get single Sales Group by ID
-export const getSalesGroupById = async (req, res) => {
-  try {
-    const group = await SalesGroup.findById(req.params.id);
-    if (!group)
-      return res
-        .status(404)
-        .json({ success: false, message: "Group not found" });
-    res.status(200).json({ success: true, data: group });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// Update Sales Group
-export const updateSalesGroup = async (req, res) => {
-  try {
-    const { error } = SalesGroupValidation.validate(req.body);
-    if (error)
-      return res
-        .status(400)
-        .json({ success: false, message: error.details[0].message });
-
-    const updatedGroup = await SalesGroup.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
     if (!updatedGroup)
-      return res
-        .status(404)
-        .json({ success: false, message: "Group not found" });
-    res.status(200).json({ success: true, data: updatedGroup });
+      return res.status(404).json({ message: "Group not found" });
+
+    res.json(updatedGroup);
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ message: "Server Error", error: err });
   }
 };
 
-// Delete Sales Group
-export const deleteSalesGroup = async (req, res) => {
+// DELETE group
+export const deleteGroup = async (req: Request, res: Response) => {
   try {
-    const deletedGroup = await SalesGroup.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    const deletedGroup = await Group.findByIdAndDelete(id);
     if (!deletedGroup)
-      return res
-        .status(404)
-        .json({ success: false, message: "Group not found" });
-    res.status(200).json({ success: true, message: "Deleted successfully" });
+      return res.status(404).json({ message: "Group not found" });
+
+    res.json({ message: "Group deleted" });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ message: "Server Error", error: err });
   }
 };
