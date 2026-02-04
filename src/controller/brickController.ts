@@ -24,15 +24,33 @@ export const getAllBricks = async (req: Request, res: Response) => {
   }
 };
 // CREATE brick
+
+const generateBrickId = async (): Promise<string> => {
+  let brickId: string;
+  let exists: IBrick | null;
+
+  do {
+    const randomNumber = Math.floor(100 + Math.random() * 900);
+    brickId = `BRI${randomNumber}`;
+    exists = await Brick.findOne({ brickId });
+  } while (exists); // repeat if ID already exists
+
+  return brickId;
+};
+
 export const createBrick = async (req: Request, res: Response) => {
   try {
     const { brickName, city, mrName, areas, pharmacies, doctors, products } =
       req.body;
+
     if (!brickName || !city || !mrName) {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
+    const brickId = await generateBrickId(); // generate unique brick ID
+
     const newBrick: IBrick = new Brick({
+      brickId, // <-- auto-generated ID
       brickName,
       city,
       mrName,
@@ -44,8 +62,8 @@ export const createBrick = async (req: Request, res: Response) => {
 
     const savedBrick = await newBrick.save();
     res.status(201).json(savedBrick);
-  } catch (err) {
-    res.status(500).json({ message: "Server Error", error: err });
+  } catch (err: any) {
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
 
