@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   getAllGroups,
-  getGroupById,
   createGroup,
   updateGroup,
   deleteGroup,
@@ -10,7 +9,6 @@ import {
 const router = Router();
 
 router.get("/getAllGroups", getAllGroups);
-router.get("/getGroupById/:id", getGroupById);
 router.post("/createGroup", createGroup);
 router.put("/updateGroup/:id", updateGroup);
 router.delete("/deleteGroup/:id", deleteGroup);
