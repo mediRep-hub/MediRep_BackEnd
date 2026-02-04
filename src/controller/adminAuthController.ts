@@ -269,27 +269,37 @@ const adminAuthController = {
   // 📝 GET ALL LOGINS
   async getAllAdmins(req: Request, res: Response, next: NextFunction) {
     try {
-      // Parse page and limit from query params
-      const page = parseInt(req.query.page as string) || 1; // default 1
-      const limit = parseInt(req.query.limit as string) || 10; // default 10
-
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      // Count total admins (excluding SuperAdmin)
-      const totalItems = await Admin.countDocuments({
-        email: { $ne: "SuperAdmin@gmail.com" },
-      });
+      const { name, brickName } = req.query;
 
-      // Fetch admins with pagination
-      const admins = await Admin.find({
+      // Base filter (exclude SuperAdmin)
+      const filter: any = {
         email: { $ne: "SuperAdmin@gmail.com" },
-      })
+      };
+
+      // Optional filters
+      if (name) {
+        filter.name = { $regex: name, $options: "i" }; // case-insensitive
+      }
+
+      if (brickName) {
+        filter.brickName = { $regex: brickName, $options: "i" };
+      }
+
+      // Count with filters
+      const totalItems = await Admin.countDocuments(filter);
+
+      // Fetch data
+      const admins = await Admin.find(filter)
         .select(
           "adminId name email phoneNumber division ownerName brickName city position image",
         )
         .skip(skip)
         .limit(limit)
-        .sort({ name: 1 }); // optional sorting
+        .sort({ name: 1 });
 
       return res.status(200).json({
         admins,
@@ -304,6 +314,7 @@ const adminAuthController = {
       return next(err);
     }
   },
+
   async updateAdmin(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
     const {

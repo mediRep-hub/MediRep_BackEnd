@@ -117,8 +117,18 @@ export const getAllPharmacies = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 6;
     const skip = (page - 1) * limit;
 
-    const totalPharmacies = await Pharmacy.countDocuments();
-    const pharmacies = await Pharmacy.find()
+    const { name } = req.query;
+
+    // Build filter
+    const filter: any = {};
+
+    if (name) {
+      filter.name = { $regex: name, $options: "i" }; // case-insensitive
+    }
+
+    const totalPharmacies = await Pharmacy.countDocuments(filter);
+
+    const pharmacies = await Pharmacy.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

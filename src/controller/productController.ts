@@ -24,22 +24,31 @@ export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const { sku, productName, page = "1", limit = "10" } = req.query;
 
-    const filter: any = {};
-    if (sku) {
-      filter.sku = { $regex: new RegExp(sku as string, "i") };
-    }
-    if (productName) {
-      filter.productName = { $regex: new RegExp(productName as string, "i") };
-    }
-
     const pageNumber = parseInt(page as string, 10) || 1;
     const itemsPerPage = parseInt(limit as string, 10) || 10;
+
+    // 🔍 Build filter
+    const filter: any = {};
+
+    if (sku) {
+      filter.sku = { $regex: sku, $options: "i" };
+    }
+
+    if (productName) {
+      filter.productName = { $regex: productName, $options: "i" };
+    }
+
     const totalItems = await Product.countDocuments(filter);
+
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * itemsPerPage)
       .limit(itemsPerPage);
+
     const categoryStats = await Product.aggregate([
+      {
+        $match: filter, // 👈 IMPORTANT: respect productName filter
+      },
       {
         $group: {
           _id: "$category",
@@ -71,7 +80,9 @@ export const getAllProducts = async (req: Request, res: Response) => {
       },
       { $sort: { name: 1 } },
     ]);
+
     const totalStats = await Product.aggregate([
+      { $match: filter }, // 👈 IMPORTANT
       {
         $group: {
           _id: null,
@@ -120,6 +131,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 export const getAllProductsMR = async (req: Request, res: Response) => {
   try {
     // Fetch all products excluding Discontinued
@@ -179,7 +191,7 @@ export const uploadCSVUpdateTarget = async (req: Request, res: Response) => {
       const { SKU, target } = row;
       await Product.updateOne(
         { sku: SKU },
-        { $set: { target: Number(target) } }
+        { $set: { target: Number(target) } },
       );
     }
 

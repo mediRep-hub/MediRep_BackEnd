@@ -148,8 +148,18 @@ export const getAllDoctors = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 6;
     const skip = (page - 1) * limit;
 
-    const totalDoctors = await Doctor.countDocuments();
-    const doctors = await Doctor.find()
+    const { name } = req.query;
+
+    // Build filter object
+    const filter: any = {};
+
+    if (name) {
+      filter.name = { $regex: name, $options: "i" }; // case-insensitive search
+    }
+
+    const totalDoctors = await Doctor.countDocuments(filter);
+
+    const doctors = await Doctor.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

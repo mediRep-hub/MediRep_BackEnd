@@ -12,7 +12,6 @@ export const getAllGroups = async (req: Request, res: Response) => {
     let groups;
 
     if (groupName) {
-      // Filter groups by groupName (case-insensitive)
       groups = await Group.find({
         groupName: { $regex: new RegExp(String(groupName), "i") },
       }).populate("mr", "name email role");
