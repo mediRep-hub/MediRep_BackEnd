@@ -1,0 +1,3 @@
+location_lat,affiliation,city,email,endTime,image,name,phone,brick,specialty,startTime,location_lng,location_address,,PMDC,doctorClass
+31.4504,Faisalabad Skin Clinic,Hyderabad,kamran.iqbal@example.com,10:00,snjsjadnsds.png,Dr. Kamran Iqbal,3155558899,Lahore,Cardiologist,12:00,74.3587,Expo Centre Lahore,,PMDC-3947234,Class A
+31.5204,Hyderabad General Hospital,Faisalabad,nadia.sheikh@example.com,12:00,sasaSASAs,Dr. Nadia Sheikh,3158858899,Lahore,Endocrinologist,10:00,74.4587,Liberty Market Lahore,,,Class C

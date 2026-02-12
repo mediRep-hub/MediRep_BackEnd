@@ -12,6 +12,7 @@ import orderRoutes from "./routes/orderRoutes";
 import pharmacyRoutes from "./routes/pharmacyRoutes";
 import secondarySale from "./routes/SecondarySalesRoutes";
 import groupBrick from "./routes/brickGroupRoutes";
+import stock from "./routes/stockReportRoutes";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
 import { createServer } from "http";
@@ -36,7 +37,7 @@ app.use(
       else callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-  })
+  }),
 );
 
 // ✅ Root route
@@ -58,6 +59,7 @@ app.use("/orders", orderRoutes);
 app.use("/pharmacy", pharmacyRoutes);
 app.use("/secondarySale", secondarySale);
 app.use("/group", groupBrick);
+app.use("/stock", stock);
 
 app.use(ErrorHandler);
 

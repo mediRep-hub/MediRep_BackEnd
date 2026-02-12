@@ -1,13 +1,12 @@
 import Joi from "joi";
 
-// Group validation
 export const validateGroup = (data: any) => {
   const schema = Joi.object({
     groupName: Joi.string().required(),
     groupType: Joi.string().required(),
     region: Joi.string().required(),
-    city: Joi.string().required(), // single string
-    area: Joi.array().items(Joi.string()).min(1).required(), // array of strings
+    city: Joi.string().required(),
+    area: Joi.array().items(Joi.string()).min(1).required(),
     doctorList: Joi.array().items(Joi.string()).min(1).required(),
     manager: Joi.string().required(),
     teamLead: Joi.string().required(),

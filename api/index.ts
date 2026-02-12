@@ -14,7 +14,7 @@ import orderRoutes from "../src/routes/orderRoutes.js";
 import ErrorHandler from "../src/middlewares/errorHandler.js";
 import secondarySale from "../src/routes/SecondarySalesRoutes";
 import groupBrick from "../src/routes/brickGroupRoutes";
-
+import stock from "../src/routes/stockReportRoutes";
 dotenv.config();
 
 const app = express();
@@ -35,7 +35,7 @@ app.use(
       else callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-  })
+  }),
 );
 
 // ✅ Root route
@@ -57,6 +57,7 @@ app.use("/orders", orderRoutes);
 app.use("/pharmacy", pharmacyRoutes);
 app.use("/secondarySale", secondarySale);
 app.use("/group", groupBrick);
+app.use("/stock", stock);
 
 app.use(ErrorHandler);
 
