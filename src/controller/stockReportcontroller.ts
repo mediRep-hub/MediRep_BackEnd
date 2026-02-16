@@ -4,8 +4,9 @@ import multer from "multer";
 import fs from "fs";
 import csv from "csv-parser";
 import xlsx from "xlsx";
-import pdfParse from "pdf-parse";
-const pdfParse = require("pdf-parse").default;
+// import pdfParse from "pdf-parse";
+const { PDFParse } = require("pdf-parse");
+// const pdfParse = require("pdf-parse").default;
 // ---------------- Dynamic MongoDB schema ----------------
 interface IStockReport extends Document {
   [key: string]: any;
@@ -188,33 +189,43 @@ export const uploadStockFile = async (req: Request, res: Response) => {
 
         data = rowsToInsert.map((r) => titles.map((t) => r[t] ?? ""));
       }
-    } else if (mimetype === "application/pdf") {
+    } else if (mimetype.includes("pdf")) {
       const buffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(buffer);
 
-      const lines = pdfData.text.split("\n").filter((l) => l.trim() !== "");
+      const parser = new PDFParse({ data: buffer });
 
-      if (lines.length >= 2) {
-        const headerRow1 = lines[0].split(/\s+/);
-        const headerRow2 = lines[1].split(/\s+/);
+      const result = await parser.getText();
 
-        titles = mergeHeaders(headerRow1, headerRow2);
+      console.log("PDF TEXT:\n", result.text);
 
-        const bodyRows = lines.slice(2);
+      const lines = result.text
+        .split("\n")
+        .map((l: string) => l.trim())
+        .filter((l: string) => l.length > 0);
 
-        rowsToInsert = bodyRows.map((line) => {
-          const columns = line.split(/\s+/);
-          const obj: any = {};
+      if (lines.length < 3) {
+        throw new Error("PDF does not contain enough data");
+      }
 
-          titles.forEach((title, i) => {
-            obj[title] = cleanValue(columns[i]);
-          });
+      const headerRow1 = lines[0].split(/\s{2,}/);
+      const headerRow2 = lines[1].split(/\s{2,}/);
 
-          return obj;
+      titles = mergeHeaders(headerRow1, headerRow2);
+
+      const bodyRows = lines.slice(2);
+
+      rowsToInsert = bodyRows.map((line: string) => {
+        const columns = line.split(/\s{2,}/);
+
+        const obj: any = {};
+        titles.forEach((title, i) => {
+          obj[title] = cleanValue(columns[i]);
         });
 
-        data = rowsToInsert.map((r) => titles.map((t) => r[t] ?? ""));
-      }
+        return obj;
+      });
+
+      data = rowsToInsert.map((r) => titles.map((t) => r[t] ?? ""));
     } else {
       return res.status(400).json({
         success: false,
