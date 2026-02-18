@@ -126,15 +126,14 @@ export const uploadStockFile = async (req: Request, res: Response) => {
     let rowsToInsert: any[] = [];
     let data: any[] = [];
 
+    // ---------------- CSV ----------------
     if (mimetype === "text/csv") {
       const allRows: any[] = [];
 
       await new Promise<void>((resolve, reject) => {
         fs.createReadStream(filePath)
           .pipe(csv({ headers: false }))
-          .on("data", (row) => {
-            allRows.push(Object.values(row));
-          })
+          .on("data", (row) => allRows.push(Object.values(row)))
           .on("end", resolve)
           .on("error", reject);
       });
@@ -142,22 +141,16 @@ export const uploadStockFile = async (req: Request, res: Response) => {
       if (allRows.length >= 2) {
         const headerRow1 = allRows[0] as string[];
         const headerRow2 = allRows[1] as string[];
-
         titles = mergeHeaders(headerRow1, headerRow2);
-
-        const bodyRows = allRows.slice(2);
-
-        rowsToInsert = bodyRows.map((row: any[]) => {
+        rowsToInsert = allRows.slice(2).map((row: any[]) => {
           const obj: any = {};
-          titles.forEach((title, i) => {
-            obj[title] = cleanValue(row[i]);
-          });
+          titles.forEach((title, i) => (obj[title] = cleanValue(row[i])));
           return obj;
         });
-
-        data = rowsToInsert.map((r) => titles.map((t) => r[t] ?? ""));
       }
-    } else if (
+    }
+    // ---------------- XLSX / Excel ----------------
+    else if (
       mimetype ===
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
       mimetype === "application/vnd.ms-excel"
@@ -174,29 +167,20 @@ export const uploadStockFile = async (req: Request, res: Response) => {
       if (rawData.length >= 2) {
         const headerRow1 = rawData[0];
         const headerRow2 = rawData[1];
-
         titles = mergeHeaders(headerRow1, headerRow2);
 
-        const bodyRows = rawData.slice(2);
-
-        rowsToInsert = bodyRows.map((row) => {
+        rowsToInsert = rawData.slice(2).map((row) => {
           const obj: any = {};
-          titles.forEach((title, i) => {
-            obj[title] = cleanValue(row[i]);
-          });
+          titles.forEach((title, i) => (obj[title] = cleanValue(row[i])));
           return obj;
         });
-
-        data = rowsToInsert.map((r) => titles.map((t) => r[t] ?? ""));
       }
-    } else if (mimetype.includes("pdf")) {
+    }
+    // ---------------- PDF ----------------
+    else if (mimetype.includes("pdf")) {
       const buffer = fs.readFileSync(filePath);
-
       const parser = new PDFParse({ data: buffer });
-
       const result = await parser.getText();
-
-      console.log("PDF TEXT:\n", result.text);
 
       const lines = result.text
         .split("\n")
@@ -209,38 +193,30 @@ export const uploadStockFile = async (req: Request, res: Response) => {
 
       const headerRow1 = lines[0].split(/\s{2,}/);
       const headerRow2 = lines[1].split(/\s{2,}/);
-
       titles = mergeHeaders(headerRow1, headerRow2);
 
-      const bodyRows = lines.slice(2);
-
-      rowsToInsert = bodyRows.map((line: string) => {
+      rowsToInsert = lines.slice(2).map((line: string) => {
         const columns = line.split(/\s{2,}/);
-
         const obj: any = {};
-        titles.forEach((title, i) => {
-          obj[title] = cleanValue(columns[i]);
-        });
-
+        titles.forEach((title, i) => (obj[title] = cleanValue(columns[i])));
         return obj;
       });
-
-      data = rowsToInsert.map((r) => titles.map((t) => r[t] ?? ""));
     } else {
       return res.status(400).json({
         success: false,
         message: "Unsupported file type",
       });
     }
-    if (rowsToInsert.length) {
-      await StockReport.insertMany(rowsToInsert);
-    }
 
+    // ---------------- Cleanup file ----------------
     fs.unlinkSync(filePath);
+
+    // ---------------- Prepare response ----------------
+    data = rowsToInsert; // each row is already an object with title keys
 
     return res.status(200).json({
       success: true,
-      message: `${rowsToInsert.length} records inserted successfully`,
+      message: `${rowsToInsert.length} records parsed successfully`,
       titles,
       data,
     });
@@ -254,6 +230,7 @@ export const uploadStockFile = async (req: Request, res: Response) => {
 };
 
 // ---------------- GET API ----------------
+
 export const getAllStockReports = async (req: Request, res: Response) => {
   try {
     const reports = await StockReport.find().sort({ createdAt: -1 }).lean();
@@ -266,23 +243,31 @@ export const getAllStockReports = async (req: Request, res: Response) => {
       });
     }
 
-    const allKeys = new Set<string>();
+    const titles = [
+      "Item Description",
+      "Rate",
+      "Purchase",
+      "Return",
+      "Total",
+      "Opening Balance",
+      "Net Sales",
+      "Bonus",
+      "Value",
+      "Adjustment",
+      "Balance",
+      "Value (Closing)",
+      "Today Sale",
+      "Today Return",
+    ];
 
-    reports.forEach((doc) =>
-      Object.keys(doc).forEach((k) => {
-        if (
-          k !== "_id" &&
-          k !== "__v" &&
-          k !== "createdAt" &&
-          k !== "updatedAt"
-        )
-          allKeys.add(k);
-      }),
-    );
-
-    const titles = Array.from(allKeys);
-
-    const data = reports.map((doc) => titles.map((key) => doc[key] ?? ""));
+    // Map each document to an object containing only these keys
+    const data = reports.map((doc) => {
+      const obj: any = {};
+      titles.forEach((title) => {
+        obj[title] = doc[title] ?? ""; // pick only the keys we want
+      });
+      return obj;
+    });
 
     return res.status(200).json({
       titles,
