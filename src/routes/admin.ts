@@ -1,4 +1,6 @@
-import adminAuthController from "../controller/adminAuthController";
+import adminAuthController, {
+  getTodayBirthdays,
+} from "../controller/adminAuthController";
 import auth from "../middlewares/auth";
 
 const express = require("express");
@@ -11,6 +13,7 @@ router.post("/logout", auth, adminAuthController.logout);
 router.put("/updatePassword/:id", auth, adminAuthController.updatePassword);
 router.get("/getAll", adminAuthController.getAllAdmins);
 router.put("/updateAccount/:id", adminAuthController.updateAdmin);
+router.get("/birthdays", getTodayBirthdays);
 router.delete(
   "/deleteAccount/:id",
 

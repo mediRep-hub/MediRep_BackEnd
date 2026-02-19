@@ -1,0 +1,48 @@
+import express from "express";
+import {
+  checkIn,
+  checkOut,
+  getAllAttendance,
+  editAttendance,
+  getAttendanceSummary,
+  getUserAttendanceStatus,
+  startBreak,
+  endBreak,
+  createDailyAttendance,
+  updateAttendanceAdmin,
+  getMonthlyAttendanceGraph,
+  setCompanyTiming,
+  getCompanyTiming,
+} from "../controller/attendanceController";
+
+import {
+  validateBody,
+  checkInSchema,
+  checkOutSchema,
+  editAttendanceSchema,
+} from "../validations/attendanceValidation";
+import auth from "../middlewares/auth";
+
+const router = express.Router();
+
+router.post("/checkin", auth, checkIn);
+router.post("/startBreak", auth, startBreak);
+router.post("/endBreak", auth, endBreak);
+router.post("/checkout", validateBody(checkOutSchema), checkOut);
+router.get("/getAllAttendance", getAllAttendance);
+router.get("/getAttendanceSummary", getAttendanceSummary);
+
+router.put(
+  "/UpdateAttendance/:id",
+  validateBody(editAttendanceSchema),
+  editAttendance,
+);
+router.put("/updateAttendanceAdmin/:id", auth, updateAttendanceAdmin);
+router.get("/status", auth, getUserAttendanceStatus);
+
+router.post("/createDailyAttendance", createDailyAttendance);
+router.get("/getMonthlyAttendanceGraph", getMonthlyAttendanceGraph);
+router.post("/setCompanyTiming", setCompanyTiming);
+router.get("/getCompanyTiming", getCompanyTiming);
+
+export default router;

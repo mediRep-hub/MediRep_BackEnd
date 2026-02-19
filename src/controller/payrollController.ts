@@ -1,0 +1,269 @@
+import { Request, Response } from "express";
+import Payroll from "../models/payrollModel";
+import { sendNotification } from "../utils/notifications";
+import User from "../models/admin";
+
+export const generatePayroll = async (req: Request, res: Response) => {
+  try {
+    const {
+      employeeId,
+      employeeName,
+      position,
+      month,
+      totalWorkingDays,
+      year,
+      presentDays,
+      approvedLeaves,
+      basicSalary,
+      allowances,
+      deductions,
+    } = req.body;
+
+    // Check if payroll already exists
+    const exists = await Payroll.findOne({ employeeId, month, year });
+    if (exists)
+      return res.status(400).json({ message: "Payroll already generated" });
+
+    // Calculate salaries
+    const totalAllowances =
+      (allowances.medical || 0) +
+      (allowances.transport || 0) +
+      (allowances.others || 0);
+    const totalDeductions =
+      (deductions.pf || 0) +
+      (deductions.loan || 0) +
+      (deductions.advanceSalary || 0) +
+      (deductions.tax || 0) +
+      (deductions.others || 0);
+
+    const grossSalary = basicSalary + totalAllowances;
+    const netPay = grossSalary - totalDeductions;
+
+    // Create payroll
+    const payroll = await Payroll.create({
+      employeeId,
+      employeeName,
+      position,
+      month,
+      year,
+      presentDays,
+      approvedLeaves,
+      totalWorkingDays,
+      basicSalary,
+      allowances,
+      deductions,
+      grossSalary,
+      netPay,
+      payrollStatus: "Pending",
+    });
+
+    // Generate salary slip
+    // const salarySlipUrl = await generateSalarySlipPDF(payroll);
+    // payroll.salarySlipUrl = salarySlipUrl;
+    // await payroll.save();
+
+    res.status(201).json({
+      message: "Payroll & Salary Slip generated successfully",
+      payroll,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const approvePayroll = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { approvedBy } = req.body; // string name from frontend
+
+    if (!approvedBy) {
+      return res.status(400).json({ message: "Approver name is required" });
+    }
+
+    const payroll = await Payroll.findById(id);
+    if (!payroll) return res.status(404).json({ message: "Payroll not found" });
+
+    if (payroll.payrollStatus === "Approved") {
+      return res.status(400).json({ message: "Payroll is already approved" });
+    }
+
+    // ✅ Update payroll status
+    payroll.payrollStatus = "Approved";
+    payroll.approvedBy = approvedBy;
+    payroll.approvedAt = new Date();
+
+    await payroll.save();
+
+    // 🔔 Send notification to the employee
+    const employee = await User.findOne({ employeeId: payroll.employeeId });
+
+    if (employee?.fcmToken) {
+      // Using 3 arguments version of sendNotification
+      await sendNotification(
+        employee.fcmToken,
+        "Payroll Approved ✅",
+        `Your payroll for ${payroll.month} ${payroll.year} has been approved by ${approvedBy}.`,
+      );
+      console.log(`✅ Notification sent to ${employee.name}`);
+    } else {
+      console.log(`⚠️ No FCM token found for employee ${payroll.employeeId}`);
+    }
+
+    res.status(200).json({
+      message: "Payroll approved successfully",
+      payroll,
+    });
+  } catch (error) {
+    console.error("Approve Payroll Error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+export const getAllPayrolls = async (req: Request, res: Response) => {
+  try {
+    const { employeeId, employeeName, month, year } = req.query;
+    const query: any = {};
+
+    if (employeeId)
+      query.employeeId = { $regex: employeeId as string, $options: "i" };
+    if (employeeName)
+      query.employeeName = { $regex: employeeName as string, $options: "i" };
+    if (month) query.month = month as string;
+    if (year) query.year = Number(year);
+
+    const payrolls = await Payroll.find(query).sort({ processedAt: -1 });
+    res.json(payrolls);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+export const updatePayroll = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const payroll = await Payroll.findById(id);
+    if (!payroll) return res.status(404).json({ message: "Payroll not found" });
+
+    if (payroll.isLocked)
+      return res
+        .status(403)
+        .json({ message: "Payroll is locked and cannot be updated" });
+
+    const {
+      employeeId,
+      employeeName,
+      position,
+      month,
+      year,
+      presentDays,
+      approvedLeaves,
+      basicSalary,
+      allowances,
+      deductions,
+    } = req.body;
+
+    // Update fields
+    payroll.employeeId = employeeId ?? payroll.employeeId;
+    payroll.employeeName = employeeName ?? payroll.employeeName;
+    payroll.position = position ?? payroll.position;
+    payroll.month = month ?? payroll.month;
+    payroll.year = year ?? payroll.year;
+    payroll.presentDays = presentDays ?? payroll.presentDays;
+    payroll.approvedLeaves = approvedLeaves ?? payroll.approvedLeaves;
+    payroll.basicSalary = basicSalary ?? payroll.basicSalary;
+    payroll.allowances = allowances ?? payroll.allowances;
+    payroll.deductions = deductions ?? payroll.deductions;
+
+    // Recalculate salary
+    const totalAllowances =
+      (payroll.allowances?.medical || 0) +
+      (payroll.allowances?.transport || 0) +
+      (payroll.allowances?.others || 0);
+
+    const totalDeductions =
+      (payroll.deductions?.pf || 0) +
+      (payroll.deductions?.loan || 0) +
+      (payroll.deductions?.advanceSalary || 0) +
+      (payroll.deductions?.tax || 0) +
+      (payroll.deductions?.others || 0);
+
+    payroll.grossSalary = payroll.basicSalary + totalAllowances;
+    payroll.netPay = payroll.grossSalary - totalDeductions;
+
+    // if (req.body.regenerateSalarySlip) {
+    //   payroll.salarySlipUrl = await generateSalarySlipPDF(payroll);
+    // }
+
+    await payroll.save();
+    const employee = await User.findOne({ employeeId: payroll.employeeId });
+
+    if (employee?.fcmToken) {
+      await sendNotification(
+        employee.fcmToken,
+        "Payroll Updated",
+        `Your payroll for ${payroll.month} ${payroll.year} has been updated.`,
+        { type: "PAYROLL", payrollId: payroll._id.toString() },
+      );
+    }
+
+    res.status(200).json({
+      message: "Payroll updated successfully",
+      payroll,
+    });
+  } catch (error: any) {
+    console.error("Update Payroll Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getEmployeePayrolls = async (req: Request, res: Response) => {
+  try {
+    const { employeeId } = req.params;
+    const payrolls = await Payroll.find({ employeeId }).sort({
+      processedAt: -1,
+    });
+    res.json(payrolls);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+export const generateSalarySlip = async (req: Request, res: Response) => {
+  try {
+    const employeeId = req.params.id;
+    const { month, year } = req.query;
+
+    if (!employeeId)
+      return res.status(400).json({ message: "Employee ID is required" });
+
+    // Build query
+    const query: any = {
+      employeeId,
+      payrollStatus: "Approved",
+    };
+
+    if (month) query.month = month as string;
+    if (year) query.year = Number(year);
+
+    const payrolls = await Payroll.find(query).sort({ processedAt: -1 });
+
+    if (payrolls.length === 0)
+      return res
+        .status(404)
+        .json({ message: "No approved payrolls found for this employee" });
+
+    res.status(200).json({
+      success: true,
+      message: "Approved payrolls fetched successfully",
+      payrolls,
+    });
+  } catch (error: any) {
+    console.error("Error fetching approved payrolls:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};

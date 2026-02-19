@@ -11,8 +11,11 @@ import uploadFileRoutes from "./routes/uploadRoute";
 import orderRoutes from "./routes/orderRoutes";
 import pharmacyRoutes from "./routes/pharmacyRoutes";
 import secondarySale from "./routes/SecondarySalesRoutes";
+import attendanceRouter from "./routes/attendanceRoutes";
+import leaveRouter from "./routes/leavesRoutes";
+import payrollRouter from "./routes/payrollRoutes";
+import eventsRoutes from "./routes/eventRoutes";
 import groupBrick from "./routes/brickGroupRoutes";
-import stock from "./routes/stockReportRoutes";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
 import { createServer } from "http";
@@ -59,7 +62,11 @@ app.use("/orders", orderRoutes);
 app.use("/pharmacy", pharmacyRoutes);
 app.use("/secondarySale", secondarySale);
 app.use("/group", groupBrick);
-app.use("/stock", stock);
+
+app.use("/attendance", attendanceRouter);
+app.use("/leave", leaveRouter);
+app.use("/payroll", payrollRouter);
+app.use("/events", eventsRoutes);
 
 app.use(ErrorHandler);
 

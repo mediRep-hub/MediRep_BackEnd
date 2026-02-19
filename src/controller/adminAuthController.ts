@@ -27,10 +27,32 @@ interface AdminWithDistributor extends IAdmin {
 }
 const adminAuthController = {
   async register(req: Request, res: Response, next: NextFunction) {
-    // Validation schema
+    const leaveEntitlementsSchema = Joi.object({
+      casualLeave: Joi.object({
+        total: Joi.number().default(0),
+        consumed: Joi.number().default(0),
+      }),
+      sickLeave: Joi.object({
+        total: Joi.number().default(0),
+        consumed: Joi.number().default(0),
+      }),
+      annualLeave: Joi.object({
+        total: Joi.number().default(0),
+        consumed: Joi.number().default(0),
+      }),
+      maternityLeave: Joi.object({
+        total: Joi.number().default(0),
+        consumed: Joi.number().default(0),
+      }),
+      paternityLeave: Joi.object({
+        total: Joi.number().default(0),
+        consumed: Joi.number().default(0),
+      }),
+    });
     const adminRegisterSchema = Joi.object({
       name: Joi.string().required(),
       phoneNumber: Joi.string().required(),
+      DOB: Joi.date().required(),
       email: Joi.string().email().required(),
       password: Joi.string()
         .pattern(passwordPattern)
@@ -40,6 +62,22 @@ const adminAuthController = {
         .valid(Joi.ref("password"))
         .required()
         .messages({ "any.only": "Passwords do not match" }),
+      salaryStructure: Joi.object({
+        basic: Joi.number().required(),
+        incentive: Joi.object({
+          flue: Joi.number().default(0),
+          medical: Joi.number().default(0),
+          others: Joi.number().default(0),
+          deductions: Joi.number().default(0),
+        }).required(),
+        tax: Joi.number().default(0),
+      }).required(),
+      loanPF: Joi.object({
+        loan: Joi.number().default(0),
+        pf: Joi.number().default(0),
+      }).required(),
+      leaveEntitlements: leaveEntitlementsSchema.required(),
+      joiningDate: Joi.date().required(),
       image: Joi.string().optional(),
       division: Joi.string().required(), // e.g., Admin, Distributor, MR
       city: Joi.string().required(),
@@ -64,24 +102,28 @@ const adminAuthController = {
     const { error } = adminRegisterSchema.validate(req.body);
     if (error) return next(error);
 
-    const {
-      name,
-      phoneNumber,
-      email,
-      password,
-      image,
-      division,
-      city,
-      brickName,
-      position,
-      ownerName,
-    } = req.body;
-
     try {
-      // Check if email exists
-      const emailRegex = new RegExp(email, "i");
+      const {
+        name,
+        phoneNumber,
+        email,
+        password,
+        image,
+        division,
+        city,
+        DOB,
+        brickName,
+        joiningDate,
+        salaryStructure,
+        loanPF,
+        leaveEntitlements,
+        position,
+        ownerName,
+      } = req.body;
+
+      // Check email
       const emailExists = await Admin.findOne({
-        email: { $regex: emailRegex },
+        email: new RegExp(`^${email}$`, "i"),
       });
       if (emailExists)
         return next({ status: 409, message: "Email already registered" });
@@ -89,30 +131,30 @@ const adminAuthController = {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Generate unique adminId
-      const generateAdminId = async (position: string) => {
-        const initials = position
-          .split(" ")
-          .map((word) => word[0].toUpperCase())
-          .join("");
+      // Generate adminId
+      const initials = position
+        .split(" ")
+        .map((w: string) => w[0].toUpperCase())
+        .join("");
 
-        let uniqueIdFound = false;
-        let adminId = "";
+      let adminId = "";
+      let unique = false;
 
-        while (!uniqueIdFound) {
-          const randomDigits = Math.floor(1000 + Math.random() * 9000);
-          adminId = `${initials}-${randomDigits}`;
-          const existing = await Admin.findOne({ adminId });
-          if (!existing) uniqueIdFound = true;
-        }
+      while (!unique) {
+        const random = Math.floor(1000 + Math.random() * 9000);
+        adminId = `${initials}-${random}`;
+        const exists = await Admin.findOne({ adminId });
+        if (!exists) unique = true;
+      }
 
-        return adminId;
-      };
+      // Calculate gross salary
+      const gross =
+        salaryStructure.basic +
+        (salaryStructure.incentive.flue || 0) +
+        (salaryStructure.incentive.medical || 0) +
+        (salaryStructure.incentive.others || 0);
 
-      const adminId = await generateAdminId(position);
-
-      // Create admin object
-      const adminToRegister = new Admin({
+      const admin = await Admin.create({
         adminId,
         name,
         phoneNumber,
@@ -121,93 +163,29 @@ const adminAuthController = {
         image,
         division,
         city,
-        brickName,
         position,
         ownerName,
+        brickName,
+        DOB: new Date(DOB),
+        joiningDate: new Date(joiningDate),
+        salaryStructure: {
+          ...salaryStructure,
+          gross,
+        },
+        loanPF,
+        leaveEntitlements,
       });
 
-      // Automatically assign distributor if division = MR
+      // Assign distributor if MR
       if (division === "MR") {
         const distributor = await Admin.findOne({
           division: "Distributor",
-          city: city,
+          city,
         });
         if (distributor) {
-          (adminToRegister as any).distributor = distributor._id;
+          (admin as any).distributor = distributor._id;
+          await admin.save();
         }
-      }
-
-      const admin = await adminToRegister.save();
-
-      // Generate JWT tokens
-      const accessToken = JWTService.signAccessToken(
-        { _id: admin._id.toString() },
-        "365d",
-      );
-      const refreshToken = JWTService.signRefreshToken(
-        { _id: admin._id.toString() },
-        "365d",
-      );
-
-      await JWTService.storeRefreshToken(refreshToken, undefined, admin._id);
-      await JWTService.storeAccessToken(accessToken, undefined, admin._id);
-
-      // Remove password from response
-      const { password: _, ...adminSafe } = admin.toObject();
-
-      return res
-        .status(201)
-        .json({ admin: adminSafe, auth: true, token: accessToken });
-    } catch (err) {
-      return next(err);
-    }
-  },
-  // 🔑 LOGIN
-  async login(req: Request, res: Response, next: NextFunction) {
-    const adminLoginSchema = Joi.object({
-      email: Joi.string().email().required(),
-      password: Joi.string().required(),
-    });
-
-    const { error } = adminLoginSchema.validate(req.body);
-    if (error) return next(error);
-
-    const { email, password } = req.body;
-
-    try {
-      // Find admin by email
-      const admin = await Admin.findOne({
-        email: new RegExp(`^${email}$`, "i"),
-      }).lean();
-
-      if (!admin) {
-        return next({ status: 400, message: "Incorrect email or password." });
-      }
-
-      if (!admin.password) {
-        return next({
-          status: 400,
-          message: "Password is missing for this admin account.",
-        });
-      }
-
-      const match = await bcrypt.compare(password, admin.password);
-      if (!match) {
-        return next({ status: 400, message: "Incorrect email or password." });
-      }
-
-      // 🔑 Dynamically attach distributor if MR
-      let distributorInfo = null;
-      if (admin.position === "MedicalRep(MR)") {
-        // Always fetch the distributor for the same city
-        const distributor = await Admin.findOne({
-          division: "Distributor",
-          city: admin.city, // same city as MR
-        })
-          .select("name email phoneNumber city brickName position ownerName")
-          .lean();
-
-        if (distributor) distributorInfo = distributor;
       }
 
       // Generate tokens
@@ -220,6 +198,89 @@ const adminAuthController = {
         "365d",
       );
 
+      await JWTService.storeRefreshToken(refreshToken, undefined, admin._id);
+      await JWTService.storeAccessToken(accessToken, undefined, admin._id);
+
+      const { password: _, ...adminSafe } = admin.toObject();
+
+      return res.status(201).json({
+        admin: adminSafe,
+        auth: true,
+        token: accessToken,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+  // 🔑 LOGIN
+  async login(req: Request, res: Response, next: NextFunction) {
+    // Validate request body
+    const adminLoginSchema = Joi.object({
+      email: Joi.string().email().required(),
+      password: Joi.string().required(),
+      fcmToken: Joi.string().optional(), // ✅ optional FCM token
+    });
+
+    const { error } = adminLoginSchema.validate(req.body);
+    if (error) return next(error);
+
+    const { email, password, fcmToken } = req.body;
+
+    try {
+      // Find admin by email (case-insensitive)
+      const admin = await Admin.findOne({
+        email: new RegExp(`^${email}$`, "i"),
+      });
+      if (!admin) {
+        return next({ status: 400, message: "Incorrect email or password." });
+      }
+
+      // Ensure password exists
+      if (!admin.password) {
+        return next({
+          status: 400,
+          message: "Password is missing for this admin account.",
+        });
+      }
+
+      // Compare password
+      const match = await bcrypt.compare(password, admin.password);
+      if (!match) {
+        return next({ status: 400, message: "Incorrect email or password." });
+      }
+
+      // ✅ Update FCM token only (no other fields)
+      if (fcmToken) {
+        await Admin.updateOne(
+          { _id: admin._id },
+          { $set: { fcmToken } }, // only update this field
+        );
+      }
+
+      // 🔑 Dynamically attach distributor if MR
+      let distributorInfo = null;
+      if (admin.position === "MedicalRep(MR)") {
+        const distributor = await Admin.findOne({
+          division: "Distributor",
+          city: admin.city,
+        })
+          .select("name email phoneNumber city brickName position ownerName")
+          .lean();
+
+        if (distributor) distributorInfo = distributor;
+      }
+
+      // Generate JWT tokens
+      const accessToken = JWTService.signAccessToken(
+        { _id: admin._id.toString() },
+        "365d",
+      );
+      const refreshToken = JWTService.signRefreshToken(
+        { _id: admin._id.toString() },
+        "365d",
+      );
+
+      // Store tokens in DB
       await RefreshToken.updateOne(
         { adminId: admin._id },
         { token: refreshToken },
@@ -231,19 +292,19 @@ const adminAuthController = {
         { upsert: true },
       );
 
-      // Remove password
-      const { password: _, ...adminSafe } = admin;
+      // Remove password before sending
+      const { password: _, ...adminSafe } = admin.toObject();
 
-      // ✅ Attach distributor dynamically
       return res.status(200).json({
         admin: {
           ...adminSafe,
-          distributor: distributorInfo, // this will show for all MRs in the same city
+          distributor: distributorInfo,
         },
         auth: true,
         token: accessToken,
       });
     } catch (err) {
+      console.error("Login error:", err);
       return next(err);
     }
   },
@@ -295,7 +356,7 @@ const adminAuthController = {
       // Fetch data
       const admins = await Admin.find(filter)
         .select(
-          "adminId name email phoneNumber division ownerName brickName city position image",
+          "adminId name email phoneNumber DOB division ownerName brickName city position image",
         )
         .skip(skip)
         .limit(limit)
@@ -325,6 +386,9 @@ const adminAuthController = {
       confirmPassword,
       image,
       division,
+      DOB,
+      joiningDate,
+      leaveEntitlements,
       city,
       brickName,
       position,
@@ -347,6 +411,7 @@ const adminAuthController = {
       if (phoneNumber) admin.phoneNumber = phoneNumber;
       if (email) admin.email = email;
       if (image) admin.image = image;
+      if (DOB) admin.DOB = DOB;
       if (city) admin.city = city;
       if (position) admin.position = position;
 
@@ -452,6 +517,41 @@ const adminAuthController = {
       return next(err);
     }
   },
+};
+export const getTodayBirthdays = async (req: Request, res: Response) => {
+  try {
+    const today = new Date();
+
+    const birthdays = await Admin.find({
+      $expr: {
+        $and: [
+          {
+            $eq: [
+              { $dayOfMonth: { $add: ["$DOB", 5 * 60 * 60 * 1000] } },
+              today.getDate(),
+            ],
+          },
+          {
+            $eq: [
+              { $month: { $add: ["$DOB", 5 * 60 * 60 * 1000] } },
+              today.getMonth() + 1,
+            ],
+          },
+        ],
+      },
+    }).select("name email adminId division image DOB");
+
+    res.status(200).json({
+      message: "Today's birthdays",
+      total: birthdays.length,
+      data: birthdays,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch today's birthdays",
+      error,
+    });
+  }
 };
 
 export default adminAuthController;

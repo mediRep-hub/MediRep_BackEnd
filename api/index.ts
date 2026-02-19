@@ -14,7 +14,10 @@ import orderRoutes from "../src/routes/orderRoutes.js";
 import ErrorHandler from "../src/middlewares/errorHandler.js";
 import secondarySale from "../src/routes/SecondarySalesRoutes";
 import groupBrick from "../src/routes/brickGroupRoutes";
-import stock from "../src/routes/stockReportRoutes";
+import attendanceRouter from "../src/routes/attendanceRoutes";
+import leaveRouter from "../src/routes/leavesRoutes";
+import payrollRouter from "../src/routes/payrollRoutes";
+import eventsRoutes from "../src/routes/eventRoutes";
 dotenv.config();
 
 const app = express();
@@ -57,7 +60,10 @@ app.use("/orders", orderRoutes);
 app.use("/pharmacy", pharmacyRoutes);
 app.use("/secondarySale", secondarySale);
 app.use("/group", groupBrick);
-app.use("/stock", stock);
+app.use("/attendance", attendanceRouter);
+app.use("/leave", leaveRouter);
+app.use("/payroll", payrollRouter);
+app.use("/events", eventsRoutes);
 
 app.use(ErrorHandler);
 
