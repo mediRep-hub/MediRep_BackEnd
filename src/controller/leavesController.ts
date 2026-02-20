@@ -136,6 +136,11 @@ export const updateLeaveStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status, approvedBy } = req.body;
 
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    // 1️⃣ Find Leave
     const leave = await Leave.findById(id);
     if (!leave) {
       return res.status(404).json({ message: "Leave not found" });
@@ -143,28 +148,21 @@ export const updateLeaveStatus = async (req: Request, res: Response) => {
 
     const previousStatus = leave.status;
 
-    // Update leave status
+    // 2️⃣ Update Leave Status
     leave.status = status;
-    leave.approvedBy = approvedBy;
+    leave.approvedBy = approvedBy || null;
     await leave.save();
 
-    // Only run logic when changing to Approved
+    // 3️⃣ Only execute when approving leave first time
     if (previousStatus !== "Approved" && status === "Approved") {
       const employee = await Admin.findById(leave.employeeId);
+
       if (!employee) {
         return res.status(404).json({ message: "Employee not found" });
       }
 
-      // Ensure leave entitlements exist
-      employee.leaveEntitlements = employee.leaveEntitlements || {
-        casualLeave: { total: 0, consumed: 0 },
-        sickLeave: { total: 0, consumed: 0 },
-        annualLeave: { total: 0, consumed: 0 },
-        maternityLeave: { total: 0, consumed: 0 },
-        paternityLeave: { total: 0, consumed: 0 },
-      };
-
-      const leaveKeyMap: any = {
+      // 4️⃣ Map leave type
+      const leaveKeyMap: Record<string, string> = {
         "Casual Leave": "casualLeave",
         "Sick Leave": "sickLeave",
         "Annual Leave": "annualLeave",
@@ -173,22 +171,33 @@ export const updateLeaveStatus = async (req: Request, res: Response) => {
       };
 
       const leaveKey = leaveKeyMap[leave.leaveType];
+
       if (!leaveKey) {
         return res.status(400).json({ message: "Invalid leave type" });
       }
 
-      // Calculate total leave days
+      // 5️⃣ Calculate total leave days
       const startDate = moment(leave.startDate).startOf("day");
       const endDate = moment(leave.endDate).startOf("day");
+
       const totalDays = endDate.diff(startDate, "days") + 1;
 
-      // Update leave balance
-      employee.leaveEntitlements[leaveKey].consumed =
-        (employee.leaveEntitlements[leaveKey].consumed || 0) + totalDays;
+      if (totalDays <= 0) {
+        return res.status(400).json({ message: "Invalid leave dates" });
+      }
 
-      await employee.save();
+      // 6️⃣ Increment leave consumed (NO full validation)
+      await Admin.findByIdAndUpdate(
+        employee._id,
+        {
+          $inc: {
+            [`leaveEntitlements.${leaveKey}.consumed`]: totalDays,
+          },
+        },
+        { runValidators: false },
+      );
 
-      // 🔥 Update attendance (NO NEW RECORD CREATION)
+      // 7️⃣ Update Attendance (NO new record creation)
       for (let i = 0; i < totalDays; i++) {
         const dayStart = moment(startDate)
           .add(i, "days")
@@ -216,15 +225,18 @@ export const updateLeaveStatus = async (req: Request, res: Response) => {
       }
     }
 
-    return res.json({
+    return res.status(200).json({
+      success: true,
       message: `Leave ${status} successfully`,
       leave,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Update Leave Status Error:", error);
+
     return res.status(500).json({
+      success: false,
       message: "Server error",
-      error,
+      error: error.message,
     });
   }
 };
