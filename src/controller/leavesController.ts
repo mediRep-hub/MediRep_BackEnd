@@ -78,7 +78,7 @@ export const applyLeave = async (req: Request, res: Response) => {
 
     const leave = await Leave.create({
       adminId: employee.adminId,
-      employeeId: employee._id, // 👈 add this
+      employeeId: employee._id,
       employeeName: employee.name,
       leaveType,
       startDate,
@@ -139,8 +139,6 @@ export const updateLeaveStatus = async (req: Request, res: Response) => {
     if (!status) {
       return res.status(400).json({ message: "Status is required" });
     }
-
-    // 1️⃣ Find Leave
     const leave = await Leave.findById(id);
     if (!leave) {
       return res.status(404).json({ message: "Leave not found" });
@@ -148,12 +146,10 @@ export const updateLeaveStatus = async (req: Request, res: Response) => {
 
     const previousStatus = leave.status;
 
-    // 2️⃣ Update Leave Status
     leave.status = status;
     leave.approvedBy = approvedBy || null;
     await leave.save();
 
-    // 3️⃣ Only execute when approving leave first time
     if (previousStatus !== "Approved" && status === "Approved") {
       const employee = await Admin.findById(leave.employeeId);
 
@@ -240,6 +236,7 @@ export const updateLeaveStatus = async (req: Request, res: Response) => {
     });
   }
 };
+
 // Get all leaves (HR/Admin)
 export const getAllLeaves = async (req: Request, res: Response) => {
   try {
@@ -260,7 +257,6 @@ export const getAllLeaves = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-
 // Get leave history of an employee
 export const getEmployeeLeaves = async (req: Request, res: Response) => {
   try {
@@ -271,7 +267,6 @@ export const getEmployeeLeaves = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-
 // Update leave (Edit leave request)
 export const updateLeave = async (req: Request, res: Response) => {
   try {
