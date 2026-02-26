@@ -62,12 +62,10 @@ app.use("/orders", orderRoutes);
 app.use("/pharmacy", pharmacyRoutes);
 app.use("/secondarySale", secondarySale);
 app.use("/group", groupBrick);
-
 app.use("/attendance", attendanceRouter);
 app.use("/leave", leaveRouter);
 app.use("/payroll", payrollRouter);
 app.use("/events", eventsRoutes);
-
 app.use(ErrorHandler);
 
 // ✅ Create HTTP server
