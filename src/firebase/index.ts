@@ -11,7 +11,7 @@ console.log(
   "PRIVATE KEY PREVIEW:",
   process.env.FIREBASE_PRIVATE_KEY?.slice(0, 30),
 );
-
+console.log("KEY LENGTH:", process.env.FIREBASE_PRIVATE_KEY?.length);
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
