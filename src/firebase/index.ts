@@ -9,7 +9,7 @@ console.log("CLIENT EMAIL:", process.env.FIREBASE_CLIENT_EMAIL);
 console.log("PRIVATE KEY EXISTS:", !!process.env.FIREBASE_PRIVATE_KEY);
 console.log(
   "PRIVATE KEY PREVIEW:",
-  process.env.FIREBASE_PRIVATE_KEY?.slice(0, 30)
+  process.env.FIREBASE_PRIVATE_KEY?.slice(0, 30),
 );
 
 if (!admin.apps.length) {
