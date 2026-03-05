@@ -10,7 +10,7 @@ const router = express.Router();
 router.post("/register", adminAuthController.register);
 router.post("/login", adminAuthController.login);
 router.post("/logout", auth, adminAuthController.logout);
-router.put("/updatePassword/:id", auth, adminAuthController.updatePassword);
+router.put("/updatePassword/:id", adminAuthController.updatePassword);
 router.get("/getAll", adminAuthController.getAllAdmins);
 router.put("/updateAccount/:id", adminAuthController.updateAdmin);
 router.get("/birthdays", getTodayBirthdays);
