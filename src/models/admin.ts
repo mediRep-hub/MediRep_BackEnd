@@ -65,7 +65,7 @@ const adminSchema: Schema<IAdmin> = new Schema(
     image: { type: String, required: true },
     division: { type: String, required: true },
     city: { type: String, required: true },
-    fcmToken: { type: String },
+    fcmToken: { type: String, required: false, default: null },
     joiningDate: { type: Date, required: true },
     salaryStructure: {
       basic: { type: Number, required: true },
