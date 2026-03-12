@@ -218,7 +218,7 @@ const adminAuthController = {
     const adminLoginSchema = Joi.object({
       email: Joi.string().email().required(),
       password: Joi.string().required(),
-      fcmToken: Joi.string().optional(), // ✅ optional FCM token
+      fcmToken: Joi.string().optional().allow(null, ""), // ✅ optional FCM token
     });
 
     const { error } = adminLoginSchema.validate(req.body);
