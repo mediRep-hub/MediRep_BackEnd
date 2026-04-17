@@ -16,6 +16,7 @@ import leaveRouter from "./routes/leavesRoutes";
 import payrollRouter from "./routes/payrollRoutes";
 import eventsRoutes from "./routes/eventRoutes";
 import groupBrick from "./routes/brickGroupRoutes";
+import CampRoutes from "./routes/campsRoutes";
 import ErrorHandler from "./middlewares/errorHandler";
 import { PORT } from "./config";
 import { createServer } from "http";
@@ -66,6 +67,7 @@ app.use("/attendance", attendanceRouter);
 app.use("/leave", leaveRouter);
 app.use("/payroll", payrollRouter);
 app.use("/events", eventsRoutes);
+app.use("/camp", CampRoutes);
 app.use(ErrorHandler);
 
 // ✅ Create HTTP server

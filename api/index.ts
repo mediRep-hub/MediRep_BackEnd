@@ -18,6 +18,8 @@ import attendanceRouter from "../src/routes/attendanceRoutes";
 import leaveRouter from "../src/routes/leavesRoutes";
 import payrollRouter from "../src/routes/payrollRoutes";
 import eventsRoutes from "../src/routes/eventRoutes";
+import CampRoutes from "../src/routes/campsRoutes";
+
 dotenv.config();
 
 const app = express();
@@ -64,6 +66,7 @@ app.use("/attendance", attendanceRouter);
 app.use("/leave", leaveRouter);
 app.use("/payroll", payrollRouter);
 app.use("/events", eventsRoutes);
+app.use("/camp", CampRoutes);
 
 app.use(ErrorHandler);
 
