@@ -3,6 +3,8 @@ import {
   addPatientsToCamp,
   createCamp,
   getAllCamps,
+  getCampBarStats,
+  getCampDashboardStats,
   updateCampStatus,
 } from "../controller/campsController";
 
@@ -14,5 +16,7 @@ router.get("/allcamps", getAllCamps);
 
 router.patch("/status/:id", updateCampStatus);
 router.post("/addPatients/:id", addPatientsToCamp);
+router.get("/dashboard-stats", getCampDashboardStats);
+router.get("/bar-stats", getCampBarStats);
 
 export default router;

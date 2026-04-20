@@ -41,7 +41,7 @@ const campSchema = new mongoose.Schema(
           sampleDate: { type: Date, required: true },
         },
       ],
-      default: [], // ✅ important
+      default: [],
     },
 
     status: {
@@ -54,6 +54,12 @@ const campSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Pharmacy",
+      },
+    ],
+    doctors: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Doctor",
       },
     ],
 

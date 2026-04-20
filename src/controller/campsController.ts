@@ -1,6 +1,5 @@
 import Camp from "../models/campModel";
 
-// ✅ CREATE CAMP
 export const createCamp = async (req, res) => {
   try {
     const camp = await Camp.create({
@@ -23,11 +22,14 @@ export const createCamp = async (req, res) => {
 
 export const getAllCamps = async (req, res) => {
   try {
-    const camps = await Camp.find().populate("chemists").populate({
-      path: "products.productId",
-      select:
-        "productName category isfrom amount productImage strength isStatus sku packSize achievement target",
-    });
+    const camps = await Camp.find()
+      .populate("doctors")
+      .populate("chemists")
+      .populate({
+        path: "products.productId",
+        select:
+          "productName category isfrom amount productImage strength isStatus sku packSize achievement target",
+      });
 
     const sorted = camps.sort((a, b) => {
       if (a.status === "pending" && b.status !== "pending") return -1;
@@ -80,15 +82,13 @@ export const updateCampStatus = async (req, res) => {
 
     const currentStatus = camp.status;
 
-    // 🔥 STRICT FLOW CONTROL (YOUR REQUIREMENT)
     const rules = {
-      pending: ["approved", "rejected"], // can go anywhere from pending
-      approved: ["completed"], // only completion allowed
-      completed: [], // FINAL STATE
-      rejected: [], // FINAL STATE
+      pending: ["approved", "rejected"],
+      approved: ["completed"],
+      completed: [],
+      rejected: [],
     };
 
-    // ❌ block invalid transitions
     if (!rules[currentStatus]?.includes(newStatus)) {
       return res.status(400).json({
         success: false,
@@ -161,6 +161,101 @@ export const addPatientsToCamp = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getCampDashboardStats = async (req, res) => {
+  try {
+    const camps = await Camp.find().populate("chemists").populate("doctors");
+
+    let planned = 0;
+    let executed = 0;
+
+    const doctorSet = new Set();
+    const chemistSet = new Set();
+    const brickSet = new Set();
+    const productSet = new Set();
+
+    let totalPatients = 0;
+
+    camps.forEach((camp) => {
+      if (camp.status === "approved" || camp.status === "completed") {
+        planned++;
+      }
+
+      if (camp.status === "completed") {
+        executed++;
+      }
+
+      camp.doctors?.forEach((d) => doctorSet.add(String(d._id)));
+
+      camp.chemists?.forEach((c) => chemistSet.add(String(c._id)));
+
+      if (camp.brickCode) brickSet.add(camp.brickCode);
+
+      camp.products?.forEach((p) => productSet.add(String(p.productId)));
+
+      totalPatients += camp.patients?.length || 0;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        plannedCamps: planned,
+        executedCamps: executed,
+        totalDoctors: doctorSet.size,
+        totalChemists: chemistSet.size,
+        totalProducts: productSet.size,
+        totalTerritories: brickSet.size,
+        totalPatients,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export const getCampBarStats = async (req, res) => {
+  try {
+    const camps = await Camp.find();
+
+    const brickMap = {};
+
+    camps.forEach((camp) => {
+      const brick = camp.brickCode || "Unknown";
+
+      if (!brickMap[brick]) {
+        brickMap[brick] = {
+          name: brick,
+          planned: 0,
+          executed: 0,
+        };
+      }
+
+      // ✅ Planned = approved + completed
+      if (camp.status === "approved" || camp.status === "completed") {
+        brickMap[brick].planned += 1;
+      }
+
+      // ✅ Executed = completed
+      if (camp.status === "completed") {
+        brickMap[brick].executed += 1;
+      }
+    });
+
+    const result = Object.values(brickMap);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
       message: error.message,
     });
