@@ -44,7 +44,6 @@ const campSchema = new mongoose.Schema(
       default: [], // ✅ important
     },
 
-    // ✅ NEW STATUS FIELD
     status: {
       type: String,
       enum: ["pending", "approved", "completed"],

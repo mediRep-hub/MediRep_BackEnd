@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  addPatientsToCamp,
   createCamp,
   getAllCamps,
   updateCampStatus,
@@ -11,7 +12,7 @@ const router = express.Router();
 router.post("/create", createCamp);
 router.get("/allcamps", getAllCamps);
 
-// ✅ PATCH STATUS ONLY
 router.patch("/status/:id", updateCampStatus);
+router.post("/addPatients/:id", addPatientsToCamp);
 
 export default router;
