@@ -30,6 +30,19 @@ const campSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    patients: {
+      type: [
+        {
+          name: { type: String, required: true },
+          patientId: { type: String, required: true },
+          gender: { type: String, required: true },
+          weight: { type: Number, required: true },
+          age: { type: Number, required: true },
+          sampleDate: { type: Date, required: true },
+        },
+      ],
+      default: [], // ✅ important
+    },
 
     // ✅ NEW STATUS FIELD
     status: {

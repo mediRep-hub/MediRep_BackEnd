@@ -55,7 +55,7 @@ export const updateCampStatus = async (req, res) => {
       });
     }
 
-    const allowedStatus = ["pending", "active", "completed", "cancelled"];
+    const allowedStatus = ["pending", "approved", "completed"];
 
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
@@ -80,6 +80,62 @@ export const updateCampStatus = async (req, res) => {
     res.json({
       success: true,
       message: "Status updated successfully",
+      data: camp,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const addPatientsToCamp = async (req, res) => {
+  try {
+    const { patients } = req.body;
+
+    if (!Array.isArray(patients) || patients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Patients array is required",
+      });
+    }
+
+    // 🔥 Validate each patient
+    for (const p of patients) {
+      if (
+        !p.name ||
+        !p.patientId ||
+        !p.gender ||
+        p.weight === undefined ||
+        p.age === undefined ||
+        !p.sampleDate
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "All patient fields are required",
+        });
+      }
+    }
+
+    const camp = await Camp.findById(req.params.id);
+
+    if (!camp) {
+      return res.status(404).json({
+        success: false,
+        message: "Camp not found",
+      });
+    }
+
+    // ✅ Push patients
+    // camp.patients = [...(camp.patients || []), ...patients];
+    camp.patients.push(...patients);
+
+    await camp.save();
+
+    res.json({
+      success: true,
+      message: "Patients added successfully",
       data: camp,
     });
   } catch (error) {
