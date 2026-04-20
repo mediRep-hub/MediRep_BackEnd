@@ -167,12 +167,93 @@ export const addPatientsToCamp = async (req, res) => {
   }
 };
 
-export const getCampDashboardStats = async (req, res) => {
-  try {
-    const camps = await Camp.find().populate("chemists").populate("doctors");
+interface ICamp {
+  campType: string;
+  sampleType: string;
+  campTime: string;
+  campStartDate: Date;
+  campEndDate: Date;
+  mrName: string;
+  brickCode: string;
+  status: "pending" | "approved" | "completed" | "rejected";
+  patients: any[];
+  doctors: any[];
+  chemists: any[];
+  products: { productId: string; quantity: number }[];
+}
 
+// -----------------------------
+// MAIN CONTROLLER
+// -----------------------------
+export const getCampDashboardAnalytics = async (req, res) => {
+  try {
+    const {
+      from,
+      to,
+      month,
+      year,
+      status,
+      brickCode,
+      campType,
+      sampleType,
+      doctor,
+      chemist,
+    } = req.query;
+
+    // -----------------------------
+    // DATE FILTER
+    // -----------------------------
+    const dateFilter: any = {};
+
+    if (from && to) {
+      dateFilter.campStartDate = {
+        $gte: new Date(from),
+        $lte: new Date(to),
+      };
+    }
+
+    if (month && year) {
+      const start = new Date(Number(year), Number(month) - 1, 1);
+      const end = new Date(Number(year), Number(month), 0);
+
+      dateFilter.campStartDate = {
+        $gte: start,
+        $lte: end,
+      };
+    }
+
+    // -----------------------------
+    // MAIN FILTER
+    // -----------------------------
+    const filter: any = {
+      ...dateFilter,
+    };
+
+    if (status) filter.status = status;
+    if (brickCode) filter.brickCode = brickCode;
+    if (campType) filter.campType = campType;
+    if (sampleType) filter.sampleType = sampleType;
+    if (doctor) filter.doctors = doctor;
+    if (chemist) filter.chemists = chemist;
+
+    // -----------------------------
+    // FETCH DATA
+    // -----------------------------
+    const camps = await Camp.find(filter)
+      .populate("chemists")
+      .populate("doctors")
+      .lean<ICamp[]>();
+
+    // -----------------------------
+    // STATS VARIABLES
+    // -----------------------------
     let planned = 0;
     let executed = 0;
+
+    let totalApproved = 0;
+    let totalCompleted = 0;
+    let totalPending = 0;
+    let totalRejected = 0;
 
     const doctorSet = new Set();
     const chemistSet = new Set();
@@ -181,54 +262,53 @@ export const getCampDashboardStats = async (req, res) => {
 
     let totalPatients = 0;
 
-    camps.forEach((camp) => {
-      if (camp.status === "approved" || camp.status === "completed") {
+    const totalCamps = camps.length;
+
+    // -----------------------------
+    // BAR DATA
+    // -----------------------------
+    const brickMap: any = {};
+
+    // -----------------------------
+    // LOOP
+    // -----------------------------
+    camps.forEach((camp: ICamp) => {
+      const statusVal = camp.status?.toLowerCase();
+      const brick = camp.brickCode || "Unknown";
+
+      // STATUS COUNTS
+      if (statusVal === "approved") {
+        totalApproved++;
         planned++;
       }
 
-      if (camp.status === "completed") {
+      if (statusVal === "completed") {
+        totalCompleted++;
+        planned++;
         executed++;
       }
 
-      camp.doctors?.forEach((d) => doctorSet.add(String(d._id)));
+      if (statusVal === "pending") totalPending++;
+      if (statusVal === "rejected") totalRejected++;
 
-      camp.chemists?.forEach((c) => chemistSet.add(String(c._id)));
+      // DOCTORS
+      camp.doctors?.forEach((d: any) => doctorSet.add(String(d._id)));
 
+      // CHEMISTS
+      camp.chemists?.forEach((c: any) => chemistSet.add(String(c._id)));
+
+      // PRODUCTS
+      camp.products?.forEach((p: any) => productSet.add(String(p.productId)));
+
+      // BRICKS
       if (camp.brickCode) brickSet.add(camp.brickCode);
 
-      camp.products?.forEach((p) => productSet.add(String(p.productId)));
-
+      // PATIENTS
       totalPatients += camp.patients?.length || 0;
-    });
 
-    res.json({
-      success: true,
-      data: {
-        plannedCamps: planned,
-        executedCamps: executed,
-        totalDoctors: doctorSet.size,
-        totalChemists: chemistSet.size,
-        totalProducts: productSet.size,
-        totalTerritories: brickSet.size,
-        totalPatients,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-export const getCampBarStats = async (req, res) => {
-  try {
-    const camps = await Camp.find();
-
-    const brickMap = {};
-
-    camps.forEach((camp) => {
-      const brick = camp.brickCode || "Unknown";
-
+      // -----------------------------
+      // BAR CHART LOGIC
+      // -----------------------------
       if (!brickMap[brick]) {
         brickMap[brick] = {
           name: brick,
@@ -237,24 +317,43 @@ export const getCampBarStats = async (req, res) => {
         };
       }
 
-      // ✅ Planned = approved + completed
-      if (camp.status === "approved" || camp.status === "completed") {
+      if (statusVal === "approved" || statusVal === "completed") {
         brickMap[brick].planned += 1;
       }
 
-      // ✅ Executed = completed
-      if (camp.status === "completed") {
+      if (statusVal === "completed") {
         brickMap[brick].executed += 1;
       }
     });
 
-    const result = Object.values(brickMap);
+    const barData = Object.values(brickMap);
 
+    // -----------------------------
+    // RESPONSE
+    // -----------------------------
     res.json({
       success: true,
-      data: result,
+      data: {
+        totalCamps,
+
+        plannedCamps: planned,
+        executedCamps: executed,
+
+        totalApproved,
+        totalCompleted,
+        totalPending,
+        totalRejected,
+
+        totalDoctors: doctorSet.size,
+        totalChemists: chemistSet.size,
+        totalProducts: productSet.size,
+        totalTerritories: brickSet.size,
+        totalPatients,
+
+        barData,
+      },
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: error.message,

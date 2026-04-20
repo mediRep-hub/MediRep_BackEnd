@@ -22,7 +22,7 @@ const campSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    mrType: {
+    mrName: {
       type: String,
       required: true,
     },
@@ -46,7 +46,7 @@ const campSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "approved", "completed"],
+      enum: ["pending", "approved", "completed", "rejected"],
       default: "pending",
     },
 
