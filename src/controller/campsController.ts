@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Camp from "../models/campModel";
 
 export const createCamp = async (req, res) => {
@@ -61,7 +62,6 @@ export const updateCampStatus = async (req, res) => {
     }
 
     const allowedStatus = ["pending", "approved", "completed", "rejected"];
-
     const newStatus = status.toLowerCase().trim();
 
     if (!allowedStatus.includes(newStatus)) {
@@ -80,8 +80,6 @@ export const updateCampStatus = async (req, res) => {
       });
     }
 
-    const currentStatus = camp.status;
-
     const rules = {
       pending: ["approved", "rejected"],
       approved: ["completed"],
@@ -89,20 +87,23 @@ export const updateCampStatus = async (req, res) => {
       rejected: [],
     };
 
-    if (!rules[currentStatus]?.includes(newStatus)) {
+    if (!rules[camp.status]?.includes(newStatus)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot change status from "${currentStatus}" to "${newStatus}"`,
+        message: `Cannot change status from "${camp.status}" to "${newStatus}"`,
       });
     }
 
-    camp.status = newStatus;
-    await camp.save();
+    const updatedCamp = await Camp.findByIdAndUpdate(
+      req.params.id,
+      { $set: { status: newStatus } },
+      { new: true },
+    );
 
     return res.json({
       success: true,
       message: "Status updated successfully",
-      data: camp,
+      data: updatedCamp,
     });
   } catch (error) {
     return res.status(500).json({
@@ -182,9 +183,189 @@ interface ICamp {
   products: { productId: string; quantity: number }[];
 }
 
-// -----------------------------
-// MAIN CONTROLLER
-// -----------------------------
+// export const getCampDashboardAnalytics = async (req, res) => {
+//   try {
+//     const {
+//       from,
+//       to,
+//       month,
+//       year,
+//       brickCode,
+//       campType,
+//       sampleType,
+//       doctor,
+//       chemist,
+//       product,
+//     } = req.query;
+
+//     // -----------------------------
+//     // CLEAN HELPER
+//     // -----------------------------
+//     const clean = (val: any) =>
+//       val && val !== "undefined" && val !== "null" && val !== "";
+
+//     // -----------------------------
+//     // DATE FILTER
+//     // -----------------------------
+//     const dateFilter: any = {};
+
+//     if (clean(from) && clean(to)) {
+//       dateFilter.campStartDate = {
+//         $gte: new Date(from),
+//         $lte: new Date(to),
+//       };
+//     }
+
+//     if (clean(month) && clean(year)) {
+//       const start = new Date(Number(year), Number(month) - 1, 1);
+//       const end = new Date(Number(year), Number(month), 0);
+
+//       dateFilter.campStartDate = {
+//         $gte: start,
+//         $lte: end,
+//       };
+//     }
+
+//     const filter: any = { ...dateFilter };
+
+//     if (clean(brickCode)) filter.brickCode = brickCode;
+//     if (clean(campType)) filter.campType = campType;
+//     if (clean(sampleType)) filter.sampleType = sampleType;
+
+//     if (clean(doctor)) {
+//       filter.doctors = { $in: [doctor] };
+//     }
+
+//     if (clean(chemist)) {
+//       filter.chemists = { $in: [chemist] };
+//     }
+
+//     if (clean(product)) {
+//       filter.products = {
+//         $elemMatch: {
+//           productId: product,
+//         },
+//       };
+//     }
+//     // -----------------------------
+//     // FETCH DATA
+//     // -----------------------------
+//     const camps = await Camp.find(filter)
+//       .populate("chemists")
+//       .populate("doctors")
+//       .populate("products.productId")
+//       .lean<ICamp[]>();
+
+//     // -----------------------------
+//     // STATS
+//     // -----------------------------
+//     let planned = 0;
+//     let executed = 0;
+
+//     let totalApproved = 0;
+//     let totalCompleted = 0;
+//     let totalPending = 0;
+//     let totalRejected = 0;
+
+//     const doctorSet = new Set<string>();
+//     const chemistSet = new Set<string>();
+//     const productSet = new Set<string>();
+//     const brickSet = new Set<string>();
+
+//     let totalPatients = 0;
+
+//     const brickMap: Record<string, any> = {};
+
+//     camps.forEach((camp: ICamp) => {
+//       const statusVal = camp.status?.toLowerCase();
+//       const brick = camp.brickCode || "Unknown";
+
+//       // -----------------------------
+//       // STATUS LOGIC (NO FILTER ANYMORE)
+//       // -----------------------------
+//       if (statusVal === "approved") {
+//         totalApproved++;
+//         planned++;
+//       }
+
+//       if (statusVal === "completed") {
+//         totalCompleted++;
+//         executed++;
+//         planned++; // completed also counts in planned
+//       }
+
+//       if (statusVal === "pending") totalPending++;
+//       if (statusVal === "rejected") totalRejected++;
+
+//       // -----------------------------
+//       // RELATIONS
+//       // -----------------------------
+//       camp.doctors?.forEach((d: any) => doctorSet.add(String(d._id)));
+//       camp.chemists?.forEach((c: any) => chemistSet.add(String(c._id)));
+
+//       camp.products?.forEach((p: any) =>
+//         productSet.add(String(p.productId?._id || p.productId)),
+//       );
+
+//       if (camp.brickCode) brickSet.add(camp.brickCode);
+
+//       totalPatients += camp.patients?.length || 0;
+
+//       // -----------------------------
+//       // BAR DATA
+//       // -----------------------------
+//       if (!brickMap[brick]) {
+//         brickMap[brick] = {
+//           name: brick,
+//           planned: 0,
+//           executed: 0,
+//         };
+//       }
+
+//       if (statusVal === "approved") {
+//         brickMap[brick].planned += 1;
+//       }
+
+//       if (statusVal === "completed") {
+//         brickMap[brick].executed += 1;
+//       }
+//     });
+
+//     const barData = Object.values(brickMap);
+
+//     // -----------------------------
+//     // RESPONSE
+//     // -----------------------------
+//     return res.status(200).json({
+//       success: true,
+//       data: {
+//         totalCamps: camps.length,
+
+//         plannedCamps: planned,
+//         executedCamps: executed,
+
+//         totalApproved,
+//         totalCompleted,
+//         totalPending,
+//         totalRejected,
+
+//         totalDoctors: doctorSet.size,
+//         totalChemists: chemistSet.size,
+//         totalProducts: productSet.size,
+//         totalTerritories: brickSet.size,
+//         totalPatients,
+
+//         barData,
+//       },
+//     });
+//   } catch (error: any) {
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
 export const getCampDashboardAnalytics = async (req, res) => {
   try {
     const {
@@ -192,169 +373,231 @@ export const getCampDashboardAnalytics = async (req, res) => {
       to,
       month,
       year,
-      status,
       brickCode,
       campType,
       sampleType,
       doctor,
       chemist,
+      product,
     } = req.query;
+
+    const clean = (val: any) =>
+      val && val !== "undefined" && val !== "null" && val !== "";
 
     // -----------------------------
     // DATE FILTER
     // -----------------------------
     const dateFilter: any = {};
 
-    if (from && to) {
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+
+    if (clean(from) && clean(to)) {
+      startDate = new Date(from);
+      endDate = new Date(to);
+
       dateFilter.campStartDate = {
-        $gte: new Date(from),
-        $lte: new Date(to),
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
-    if (month && year) {
-      const start = new Date(Number(year), Number(month) - 1, 1);
-      const end = new Date(Number(year), Number(month), 0);
+    if (clean(month) && clean(year)) {
+      startDate = new Date(Number(year), Number(month) - 1, 1);
+      endDate = new Date(Number(year), Number(month), 0);
 
       dateFilter.campStartDate = {
-        $gte: start,
-        $lte: end,
+        $gte: startDate,
+        $lte: endDate,
       };
     }
 
     // -----------------------------
-    // MAIN FILTER
+    // FILTER
     // -----------------------------
-    const filter: any = {
-      ...dateFilter,
-    };
+    const filter: any = { ...dateFilter };
 
-    if (status) filter.status = status;
-    if (brickCode) filter.brickCode = brickCode;
-    if (campType) filter.campType = campType;
-    if (sampleType) filter.sampleType = sampleType;
-    if (doctor) filter.doctors = doctor;
-    if (chemist) filter.chemists = chemist;
+    if (clean(brickCode)) filter.brickCode = brickCode;
+    if (clean(campType)) filter.campType = campType;
+    if (clean(sampleType)) filter.sampleType = sampleType;
+
+    if (clean(doctor)) {
+      filter.doctors = { $in: [new mongoose.Types.ObjectId(doctor)] };
+    }
+
+    if (clean(chemist)) {
+      filter.chemists = { $in: [new mongoose.Types.ObjectId(chemist)] };
+    }
+
+    if (clean(product)) {
+      filter.products = {
+        $elemMatch: {
+          productId: new mongoose.Types.ObjectId(product),
+        },
+      };
+    }
 
     // -----------------------------
-    // FETCH DATA
+    // CURRENT DATA
     // -----------------------------
     const camps = await Camp.find(filter)
       .populate("chemists")
       .populate("doctors")
-      .lean<ICamp[]>();
+      .populate("products.productId")
+      .lean();
 
     // -----------------------------
-    // STATS VARIABLES
+    // PREVIOUS DATA
     // -----------------------------
-    let planned = 0;
-    let executed = 0;
+    let prevFilter: any = {};
 
-    let totalApproved = 0;
-    let totalCompleted = 0;
-    let totalPending = 0;
-    let totalRejected = 0;
+    if (startDate && endDate) {
+      const diff = endDate.getTime() - startDate.getTime();
 
-    const doctorSet = new Set();
-    const chemistSet = new Set();
-    const brickSet = new Set();
-    const productSet = new Set();
+      const prevStart = new Date(startDate.getTime() - diff - 1);
+      const prevEnd = new Date(startDate.getTime() - 1);
 
-    let totalPatients = 0;
+      prevFilter.campStartDate = {
+        $gte: prevStart,
+        $lte: prevEnd,
+      };
 
-    const totalCamps = camps.length;
+      if (clean(brickCode)) prevFilter.brickCode = brickCode;
+      if (clean(campType)) prevFilter.campType = campType;
+      if (clean(sampleType)) prevFilter.sampleType = sampleType;
+    }
 
-    // -----------------------------
-    // BAR DATA
-    // -----------------------------
-    const brickMap: any = {};
+    const prevCamps = await Camp.find(prevFilter).lean();
 
     // -----------------------------
-    // LOOP
+    // STATS CALC
     // -----------------------------
-    camps.forEach((camp: ICamp) => {
-      const statusVal = camp.status?.toLowerCase();
-      const brick = camp.brickCode || "Unknown";
+    const countStats = (data: any[]) => {
+      let planned = 0;
+      let executed = 0;
+      let approved = 0;
+      let pending = 0;
+      let rejected = 0;
 
-      // STATUS COUNTS
-      if (statusVal === "approved") {
-        totalApproved++;
-        planned++;
-      }
+      const doctorSet = new Set<string>();
+      const chemistSet = new Set<string>();
+      const productSet = new Set<string>();
+      const brickSet = new Set<string>();
 
-      if (statusVal === "completed") {
-        totalCompleted++;
-        planned++;
-        executed++;
-      }
+      let totalPatients = 0;
 
-      if (statusVal === "pending") totalPending++;
-      if (statusVal === "rejected") totalRejected++;
+      data.forEach((camp: any) => {
+        const status = camp.status?.toLowerCase();
 
-      // DOCTORS
-      camp.doctors?.forEach((d: any) => doctorSet.add(String(d._id)));
+        // 🔥 FIXED LOGIC
+        if (status === "planned") planned++;
+        if (status === "approved") approved++;
+        if (status === "completed") executed++;
+        if (status === "pending") pending++;
+        if (status === "rejected") rejected++;
 
-      // CHEMISTS
-      camp.chemists?.forEach((c: any) => chemistSet.add(String(c._id)));
+        camp.doctors?.forEach((d: any) => doctorSet.add(String(d._id || d)));
+        camp.chemists?.forEach((c: any) => chemistSet.add(String(c._id || c)));
 
-      // PRODUCTS
-      camp.products?.forEach((p: any) => productSet.add(String(p.productId)));
+        camp.products?.forEach((p: any) =>
+          productSet.add(String(p.productId?._id || p.productId)),
+        );
 
-      // BRICKS
-      if (camp.brickCode) brickSet.add(camp.brickCode);
+        if (camp.brickCode) brickSet.add(camp.brickCode);
 
-      // PATIENTS
-      totalPatients += camp.patients?.length || 0;
+        totalPatients += camp.patients?.length || 0;
+      });
 
-      // -----------------------------
-      // BAR CHART LOGIC
-      // -----------------------------
-      if (!brickMap[brick]) {
-        brickMap[brick] = {
-          name: brick,
-          planned: 0,
-          executed: 0,
-        };
-      }
-
-      if (statusVal === "approved" || statusVal === "completed") {
-        brickMap[brick].planned += 1;
-      }
-
-      if (statusVal === "completed") {
-        brickMap[brick].executed += 1;
-      }
-    });
-
-    const barData = Object.values(brickMap);
-
-    // -----------------------------
-    // RESPONSE
-    // -----------------------------
-    res.json({
-      success: true,
-      data: {
-        totalCamps,
-
-        plannedCamps: planned,
-        executedCamps: executed,
-
-        totalApproved,
-        totalCompleted,
-        totalPending,
-        totalRejected,
-
+      return {
+        planned,
+        executed,
+        approved,
+        pending,
+        rejected,
         totalDoctors: doctorSet.size,
         totalChemists: chemistSet.size,
         totalProducts: productSet.size,
         totalTerritories: brickSet.size,
         totalPatients,
+      };
+    };
+    const currentStats = countStats(camps);
+    const prevStats = countStats(prevCamps);
 
+    // -----------------------------
+    // PERCENTAGE
+    // -----------------------------
+    const calcPercent = (curr: number, prev: number) => {
+      if (!prev) return curr > 0 ? 100 : 0;
+      return ((curr - prev) / prev) * 100;
+    };
+
+    // -----------------------------
+    // BAR DATA (🔥 UPDATED)
+    // -----------------------------
+    const barMap: Record<string, any> = {};
+
+    camps.forEach((camp: any) => {
+      const brick = camp.brickCode || "Unknown";
+      const status = camp.status?.toLowerCase();
+
+      if (!barMap[brick]) {
+        barMap[brick] = {
+          brickCode: brick,
+          totalCamps: 0,
+          approved: 0,
+          completed: 0,
+          pending: 0,
+          rejected: 0,
+        };
+      }
+
+      barMap[brick].totalCamps += 1;
+
+      if (status === "approved") barMap[brick].approved += 1;
+      else if (status === "completed") barMap[brick].completed += 1;
+      else if (status === "pending") barMap[brick].pending += 1;
+      else if (status === "rejected") barMap[brick].rejected += 1;
+    });
+    const barData = Object.values(barMap);
+
+    // -----------------------------
+    // RESPONSE
+    // -----------------------------
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...currentStats,
         barData,
+
+        percentage: {
+          planned: calcPercent(currentStats.planned, prevStats.planned),
+          executed: calcPercent(currentStats.executed, prevStats.executed),
+          doctors: calcPercent(
+            currentStats.totalDoctors,
+            prevStats.totalDoctors,
+          ),
+          chemists: calcPercent(
+            currentStats.totalChemists,
+            prevStats.totalChemists,
+          ),
+          products: calcPercent(
+            currentStats.totalProducts,
+            prevStats.totalProducts,
+          ),
+          patients: calcPercent(
+            currentStats.totalPatients,
+            prevStats.totalPatients,
+          ),
+
+          approved: calcPercent(currentStats.approved, prevStats.approved),
+          pending: calcPercent(currentStats.pending, prevStats.pending),
+          rejected: calcPercent(currentStats.rejected, prevStats.rejected),
+        },
       },
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
