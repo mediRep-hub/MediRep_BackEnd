@@ -116,6 +116,12 @@ export const addPatientsToCamp = async (req, res) => {
   try {
     const { patients } = req.body;
 
+    patients.forEach((p) => {
+      const timePart = Date.now().toString().slice(-5); // last 5 digits
+      const randPart = Math.floor(Math.random() * 100); // 2 digits
+      p.patientId = `PID-${timePart}${randPart}`;
+    });
+
     if (!Array.isArray(patients) || patients.length === 0) {
       return res.status(400).json({
         success: false,
@@ -126,11 +132,12 @@ export const addPatientsToCamp = async (req, res) => {
     for (const p of patients) {
       if (
         !p.name ||
-        !p.patientId ||
         !p.gender ||
         p.weight === undefined ||
         p.age === undefined ||
-        !p.sampleDate
+        !p.sampleDate ||
+        !p.contactNo ||
+        !p.address
       ) {
         return res.status(400).json({
           success: false,
@@ -138,8 +145,14 @@ export const addPatientsToCamp = async (req, res) => {
         });
       }
 
-      // ✅ convert date safely
-      p.sampleDate = new Date(p.sampleDate);
+      const parsedDate = new Date(p.sampleDate);
+
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid sampleDate format",
+        });
+      }
     }
 
     const camp = await Camp.findById(req.params.id);
@@ -151,7 +164,8 @@ export const addPatientsToCamp = async (req, res) => {
       });
     }
 
-    camp.patients.push(...(patients as any));
+    camp.patients.push(...patients);
+
     await camp.save();
 
     return res.json({
