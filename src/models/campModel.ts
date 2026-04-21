@@ -33,11 +33,16 @@ const campSchema = new mongoose.Schema(
     patients: {
       type: [
         {
+          patientId: {
+            type: String,
+            unique: true,
+          },
           name: { type: String, required: true },
-          patientId: { type: String, required: true },
           gender: { type: String, required: true },
           weight: { type: Number, required: true },
           age: { type: Number, required: true },
+          contactNo: { type: String, required: true },
+          address: { type: String, required: true },
           sampleDate: { type: Date, required: true },
         },
       ],
