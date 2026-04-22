@@ -110,7 +110,7 @@ export const updateCampStatus = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Camp not found" });
     }
-
+    // djaodad
     const rules: Record<string, string[]> = {
       pending: ["approved", "rejected"],
       approved: ["completed"],
