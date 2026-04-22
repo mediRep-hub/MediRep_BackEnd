@@ -25,13 +25,23 @@ export const createCamp = async (req, res) => {
       .filter(Boolean) as string[];
 
     if (adminTokens.length > 0) {
+      // await sendNotification(
+      //   adminTokens,
+      //   "🏕️ New Camp Request",
+      //   `A new camp "${req.body.campType}" has been created `,
+      //   {
+      //     campId: camp._id.toString(),
+      //     campType: req.body.campType,
+      //     status: "pending",
+      //   },
+      // );
+
       await sendNotification(
         adminTokens,
         "🏕️ New Camp Request",
-        `A new camp "${req.body.campType}" has been created `,
+        `A new camp "${req.body.campType}" has been created`,
         {
-          campId: camp._id.toString(),
-          campType: req.body.campType,
+          camp: JSON.stringify(camp), // full object
           status: "pending",
         },
       );
