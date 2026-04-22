@@ -31,7 +31,7 @@ export const createCamp = async (req, res) => {
         `A new camp "${req.body.campType}" has been created `,
         {
           campId: camp._id.toString(),
-          camp: req.body,
+          campType: req.body.campType,
           status: "pending",
         },
       );
