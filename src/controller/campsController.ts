@@ -7,8 +7,38 @@ export const createCamp = async (req, res) => {
   try {
     const camp = await Camp.create({
       ...req.body,
-      status: "pending", // 🔥 force default
+      status: "pending",
     });
+
+    console.log("✅ Camp created:", camp._id);
+
+    // ── Send notification to all Admins ──────────────────────
+    const admins = await Admin.find({
+      position: "Admin", // ← only admins
+      fcmToken: { $ne: null }, // ← only those with FCM token
+    });
+
+    console.log("👥 Admins found with FCM token:", admins.length);
+
+    const adminTokens: string[] = admins
+      .map((admin) => admin.fcmToken)
+      .filter(Boolean) as string[];
+
+    if (adminTokens.length > 0) {
+      await sendNotification(
+        adminTokens,
+        "🏕️ New Camp Request",
+        `A new camp "${req.body.campType}" has been created by ${req.body.mrName}.`,
+        {
+          campId: camp._id.toString(),
+          campType: req.body.campType,
+          status: "pending",
+        },
+      );
+      console.log("✅ Notification sent to", adminTokens.length, "admin(s)");
+    } else {
+      console.log("⚠️ No admins with FCM token found");
+    }
 
     res.status(201).json({
       success: true,
@@ -16,6 +46,7 @@ export const createCamp = async (req, res) => {
       data: camp,
     });
   } catch (error) {
+    console.error("❌ createCamp error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -71,7 +102,8 @@ export const updateCampStatus = async (req, res) => {
         .json({ success: false, message: "Invalid status value" });
     }
 
-    const camp = await Camp.findById(req.params.id).populate("user");
+    // ── NO populate here, just check status rules ────────────
+    const camp = await Camp.findById(req.params.id);
 
     if (!camp) {
       return res
@@ -79,7 +111,7 @@ export const updateCampStatus = async (req, res) => {
         .json({ success: false, message: "Camp not found" });
     }
 
-    const rules = {
+    const rules: Record<string, string[]> = {
       pending: ["approved", "rejected"],
       approved: ["completed"],
       completed: [],
@@ -93,65 +125,58 @@ export const updateCampStatus = async (req, res) => {
       });
     }
 
+    // ── Update and populate createdBy ────────────────────────
     const updatedCamp = await Camp.findByIdAndUpdate(
       req.params.id,
       { status: newStatus },
       { new: true },
-    ).populate("user"); // ← this is the user who CREATED the camp
+    ).populate("createdBy"); // ✅ NOT "user"
 
-    // ── Get the creator of the camp ──────────────────────────
-    const campCreator = (updatedCamp as any).user;
+    const campCreator = (updatedCamp as any).createdBy; // ✅ NOT .user
 
     console.log("🔔 Notification flow start");
     console.log("👤 Camp Creator ID  :", campCreator?._id);
     console.log("👤 Camp Creator Name:", campCreator?.name);
     console.log("📱 FCM Token        :", campCreator?.fcmToken);
 
-    // ── Send notification to the camp creator ────────────────
+    // ── Send notification to camp creator ────────────────────
     if (campCreator?.fcmToken) {
+      const statusMessages: Record<string, { title: string; body: string }> = {
+        approved: {
+          title: "🎉 Camp Approved!",
+          body: "Your camp request has been approved.",
+        },
+        rejected: {
+          title: "❌ Camp Rejected",
+          body: "Your camp request has been rejected.",
+        },
+        completed: {
+          title: "✅ Camp Completed",
+          body: "Your camp has been marked as completed.",
+        },
+        pending: {
+          title: "⏳ Camp Pending",
+          body: "Your camp request is under review.",
+        },
+      };
+
+      const { title, body } = statusMessages[newStatus] ?? {
+        title: "Camp Status Updated",
+        body: `Your camp status has been changed to ${newStatus}.`,
+      };
+
       try {
-        const statusMessages: Record<string, { title: string; body: string }> =
-          {
-            approved: {
-              title: "🎉 Camp Approved!",
-              body: "Your camp request has been approved by admin.",
-            },
-            rejected: {
-              title: "❌ Camp Rejected",
-              body: "Your camp request has been rejected by admin.",
-            },
-            completed: {
-              title: "✅ Camp Completed",
-              body: "Your camp has been marked as completed.",
-            },
-            pending: {
-              title: "⏳ Camp Pending",
-              body: "Your camp request is under review.",
-            },
-          };
-
-        const { title, body } = statusMessages[newStatus] ?? {
-          title: "Camp Status Updated",
-          body: `Your camp status has been changed to ${newStatus}.`,
-        };
-
         await sendNotification(campCreator.fcmToken, title, body, {
           campId: updatedCamp._id.toString(),
           status: newStatus,
         });
-
-        console.log("✅ Notification sent to camp creator:", campCreator._id);
+        console.log("✅ Notification sent to:", campCreator.name);
       } catch (err) {
         console.error("❌ Notification failed:", err);
       }
     } else {
-      console.log(
-        "⏭️  Skipped — camp creator has no FCM token. Creator ID:",
-        campCreator?._id,
-      );
+      console.log("⏭️  Skipped — no FCM token for creator:", campCreator?._id);
     }
-
-    console.log("🔔 Notification flow end");
 
     return res.json({
       success: true,

@@ -1,13 +1,11 @@
-// utils/sendNotification.ts
-import admin from "firebase-admin";
+import admin from "../firebase";
 
 export const sendNotification = async (
-  fcmToken: string | string[], // ← accept both
+  fcmToken: string | string[],
   title: string,
   body: string,
   data?: Record<string, string>,
 ) => {
-  // Single token
   if (typeof fcmToken === "string") {
     const result = await admin.messaging().send({
       token: fcmToken,
@@ -21,7 +19,6 @@ export const sendNotification = async (
     return result;
   }
 
-  // Multiple tokens
   const result = await admin.messaging().sendEachForMulticast({
     tokens: fcmToken,
     notification: { title, body },
@@ -32,19 +29,11 @@ export const sendNotification = async (
   });
 
   console.log(
-    "✅ FCM multicast result:",
+    "✅ FCM multicast:",
     result.successCount,
     "sent,",
     result.failureCount,
     "failed",
   );
-
-  // Log which tokens failed
-  result.responses.forEach((resp, i) => {
-    if (!resp.success) {
-      console.error(`❌ Token[${i}] failed:`, fcmToken[i], resp.error?.message);
-    }
-  });
-
   return result;
 };
