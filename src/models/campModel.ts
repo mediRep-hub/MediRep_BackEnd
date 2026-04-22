@@ -54,7 +54,7 @@ const campSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "completed", "rejected"],
+      enum: ["pending", "approved", "completed", "rejected", "start"],
       default: "pending",
     },
     chemists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Pharmacy" }],

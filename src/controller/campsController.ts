@@ -28,10 +28,10 @@ export const createCamp = async (req, res) => {
       await sendNotification(
         adminTokens,
         "🏕️ New Camp Request",
-        `A new camp "${req.body.campType}" has been created by ${req.body.mrName}.`,
+        `A new camp "${req.body.campType}" has been created `,
         {
           campId: camp._id.toString(),
-          campType: req.body.campType,
+          camp: req.body,
           status: "pending",
         },
       );
@@ -93,7 +93,13 @@ export const updateCampStatus = async (req, res) => {
         .json({ success: false, message: "Status is required" });
     }
 
-    const allowedStatus = ["pending", "approved", "completed", "rejected"];
+    const allowedStatus = [
+      "pending",
+      "approved",
+      "completed",
+      "rejected",
+      "start",
+    ];
     const newStatus = status.toLowerCase().trim();
 
     if (!allowedStatus.includes(newStatus)) {
