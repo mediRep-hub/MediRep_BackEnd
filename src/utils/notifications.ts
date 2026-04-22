@@ -1,34 +1,50 @@
-import admin from "../firebase";
+// utils/sendNotification.ts
+import admin from "firebase-admin";
 
 export const sendNotification = async (
-  tokens: string[] | string,
+  fcmToken: string | string[], // ← accept both
   title: string,
   body: string,
-  data?: { [key: string]: string },
+  data?: Record<string, string>,
 ) => {
-  const messaging = admin.messaging();
-  const payload = { notification: { title, body }, data };
-
-  try {
-    if (Array.isArray(tokens)) {
-      // Loop through tokens one by one
-      const results = [];
-      for (const token of tokens) {
-        try {
-          const res = await messaging.send({ ...payload, token });
-          results.push({ token, success: true, res });
-        } catch (err) {
-          results.push({ token, success: false, error: err });
-          console.error(`Failed to send notification to ${token}:`, err);
-        }
-      }
-      return results;
-    } else {
-      // Single token
-      return await messaging.send({ ...payload, token: tokens });
-    }
-  } catch (error) {
-    console.error("Notification Error:", error);
-    throw error;
+  // Single token
+  if (typeof fcmToken === "string") {
+    const result = await admin.messaging().send({
+      token: fcmToken,
+      notification: { title, body },
+      data: data ?? {},
+      webpush: {
+        notification: { title, body, icon: "/logo.png" },
+      },
+    });
+    console.log("✅ FCM single result:", result);
+    return result;
   }
+
+  // Multiple tokens
+  const result = await admin.messaging().sendEachForMulticast({
+    tokens: fcmToken,
+    notification: { title, body },
+    data: data ?? {},
+    webpush: {
+      notification: { title, body, icon: "/logo.png" },
+    },
+  });
+
+  console.log(
+    "✅ FCM multicast result:",
+    result.successCount,
+    "sent,",
+    result.failureCount,
+    "failed",
+  );
+
+  // Log which tokens failed
+  result.responses.forEach((resp, i) => {
+    if (!resp.success) {
+      console.error(`❌ Token[${i}] failed:`, fcmToken[i], resp.error?.message);
+    }
+  });
+
+  return result;
 };

@@ -2,6 +2,13 @@ import mongoose from "mongoose";
 
 const campSchema = new mongoose.Schema(
   {
+    // ── Add this ─────────────────────────────────────────────
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin", // ← your Admin model name
+      required: true,
+    },
+
     campType: {
       type: String,
       required: true,
@@ -33,10 +40,7 @@ const campSchema = new mongoose.Schema(
     patients: {
       type: [
         {
-          patientId: {
-            type: String,
-            unique: true,
-          },
+          patientId: { type: String, unique: true },
           name: { type: String, required: true },
           gender: { type: String, required: true },
           weight: { type: Number, required: true },
@@ -48,36 +52,17 @@ const campSchema = new mongoose.Schema(
       ],
       default: [],
     },
-
     status: {
       type: String,
       enum: ["pending", "approved", "completed", "rejected"],
       default: "pending",
     },
-
-    chemists: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Pharmacy",
-      },
-    ],
-    doctors: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Doctor",
-      },
-    ],
-
+    chemists: [{ type: mongoose.Schema.Types.ObjectId, ref: "Pharmacy" }],
+    doctors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Doctor" }],
     products: [
       {
-        productId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-        },
-        quantity: {
-          type: Number,
-          default: 0,
-        },
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+        quantity: { type: Number, default: 0 },
       },
     ],
   },
