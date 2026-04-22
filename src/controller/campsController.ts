@@ -128,10 +128,11 @@ export const updateCampStatus = async (req, res) => {
     }
     // djaodad
     const rules: Record<string, string[]> = {
-      pending: ["approved", "rejected"],
-      approved: ["completed"],
-      completed: [],
-      rejected: [],
+      pending: ["approved", "rejected"], // initial state
+      approved: ["start"], // after approval
+      start: ["completed"], // camp started → complete
+      completed: [], // end state
+      rejected: [], // end state
     };
 
     if (!rules[camp.status]?.includes(newStatus)) {
