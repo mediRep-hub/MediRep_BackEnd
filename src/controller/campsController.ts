@@ -486,6 +486,7 @@ export const getCampDashboardAnalytics = async (req, res) => {
     // -----------------------------
     // STATS CALC
     // -----------------------------
+
     const countStats = (data: any[]) => {
       let planned = 0;
       let executed = 0;
@@ -503,8 +504,9 @@ export const getCampDashboardAnalytics = async (req, res) => {
       data.forEach((camp: any) => {
         const status = camp.status?.toLowerCase();
 
-        // 🔥 FIXED LOGIC
-        if (status === "planned") planned++;
+        // ✅ FINAL PLANNED LOGIC
+        if (status !== "rejected" && status !== "pending") planned++;
+
         if (status === "approved") approved++;
         if (status === "completed") executed++;
         if (status === "pending") pending++;
@@ -533,6 +535,7 @@ export const getCampDashboardAnalytics = async (req, res) => {
         totalProducts: productSet.size,
         totalTerritories: brickSet.size,
         totalPatients,
+        totalCamps: data.length, // ✅ NEW KEY ADDED
       };
     };
     const currentStats = countStats(camps);
